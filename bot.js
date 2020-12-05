@@ -59,6 +59,7 @@ function configCommand(args) {
 function rockPaperScissorsCommand(msg) {
 	let challenger = msg.author;
 	let opponent = msg.mentions.users.array()[0];
+	if (opponent === undefined) return;
 	
 	if (challenger.id === opponent.id) {
 		msg.channel.send(new Discord.MessageEmbed({ 
