@@ -91,10 +91,10 @@ function rockPaperScissorsCommand(msg) {
 				(user.id === challenger.id && reaction.emoji.name === "❌") ||
 				(user.id === opponent.id && (reaction.emoji.name === "✅" || reaction.emoji.name === "❌"))
 			).once("collect", (reaction, user) => {
-				message.reactions.removeAll();
 				if (reaction.emoji.name === "✅") {
 
 					// Challenge accepted
+					message.reactions.removeAll();
 					message.edit(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: `:crossed_swords: ${opponent.toString()} accepted ${challenger.toString()}'s challenge!`,
@@ -203,6 +203,7 @@ function rockPaperScissorsCommand(msg) {
 				} else if (user.id === opponent.id) {
 
 					// Challenge declined
+					message.reactions.removeAll();
 					message.edit(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: `:no_entry_sign: ${opponent.toString()} declined ${challenger.toString()}'s challenge.`,
