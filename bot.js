@@ -16,7 +16,7 @@ client.on('message', (msg) => {
 	if (msg.content.startsWith(config.prefix)) {
 		let args = msg.content.split(" ");
 		let command = args.shift().substring(config.prefix.length);
-		switch (command) {
+		switch (command.toLowerCase()) {
 			case "config":
 				configCommand(args);
 				break;
