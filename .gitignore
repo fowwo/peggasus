@@ -1,2 +1,5 @@
 # Sensitive information
 token.txt
+
+# Personal information
+config.json
