@@ -176,7 +176,7 @@ function rockPaperScissorsCommand(msg, args) {
 					message.edit(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: `:crossed_swords: ${opponent.toString()} accepted ${challenger.toString()}'s challenge!`,
-						footer: { text: "Waiting for players." },
+						footer: { text: "Waiting for both players..." },
 						color: "#bbbbff"
 					}));
 
@@ -206,7 +206,7 @@ function rockPaperScissorsCommand(msg, args) {
 							).once("collect", (reaction) => {
 								let newEmbed = new Discord.MessageEmbed({ 
 									title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-									footer: { text: "Waiting for opponent..." },
+									footer: { text: `Waiting for ${opponent.username}...` },
 									color: "#bbbbff"
 								});
 								if (reaction.emoji.name === "🪨") {
@@ -243,7 +243,7 @@ function rockPaperScissorsCommand(msg, args) {
 							).once("collect", (reaction) => {
 								let newEmbed = new Discord.MessageEmbed({ 
 									title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-									footer: { text: "Waiting for opponent..." },
+									footer: { text: `Waiting for ${challenger.username}...` },
 									color: "#bbbbff"
 								});
 								if (reaction.emoji.name === "🪨") {
