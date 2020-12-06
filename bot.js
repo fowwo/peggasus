@@ -139,7 +139,35 @@ function rockPaperScissorsCommand(msg, args) {
 	let opponent = mentions[0];
 	if (opponent === undefined) return;
 	
-	if (challenger.id === opponent.id) {
+	if (opponent.id === client.user.id) {
+		msg.channel.send(new Discord.MessageEmbed({ 
+			title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+			description: `What will you use against ${opponent.username}, ${challenger.toString()}?`,
+			footer: { text: "Choose an item." },
+			color: "#faa61a"
+		})).then((message) => {
+			message.react("🪨");
+			message.react("📄");
+			message.react("✂️");
+
+			let collector = message.createReactionCollector((reaction, user) => 
+				user.id === challenger.id && (reaction.emoji.name === "🪨" || reaction.emoji.name === "📄" || reaction.emoji.name === "✂️")
+			).once("collect", (reaction) => {
+				let game = { challenger: null, opponent: null };
+				if (reaction.emoji.name === "🪨") {
+					game.challenger = 0;
+				} else if (reaction.emoji.name === "📄") {
+					game.challenger = 1;
+				} else {
+					game.challenger = 2;
+				}
+				game.opponent = Math.floor(Math.random() * 3);
+				outputWinner(game, message);
+				message.reactions.removeAll();
+				collector.stop();
+			});
+		});
+	} else if (challenger.id === opponent.id) {
 		msg.channel.send(new Discord.MessageEmbed({ 
 			title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 			description: `:no_entry_sign: You can't challenge yourself, ${challenger.toString()}!`,
@@ -150,7 +178,7 @@ function rockPaperScissorsCommand(msg, args) {
 	} else if (challenger.bot || opponent.bot) {
 		msg.channel.send(new Discord.MessageEmbed({ 
 			title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-			description: `:no_entry_sign: You can't challenge a bot, ${challenger.toString()}.`,
+			description: `:no_entry_sign: You can't challenge other bots, ${challenger.toString()}.`,
 			color: "#ff0000"
 		})).then((message) => {
 			setTimeout(() => { message.delete(); }, 5000);
@@ -343,13 +371,13 @@ function rockPaperScissorsCommand(msg, args) {
 				color: "#00ff00",
 				footer: { text: "The game is a draw!" }
 			}));
-			pmc.edit(new Discord.MessageEmbed({ 
+			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ffe100",
 				footer: { text: "The game is a draw!" }
 			}));
-			pmo.edit(new Discord.MessageEmbed({ 
+			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ffe100",
@@ -371,13 +399,13 @@ function rockPaperScissorsCommand(msg, args) {
 				color: "#00ff00",
 				footer: { text: `${challenger.username} wins!` }
 			}));
-			pmc.edit(new Discord.MessageEmbed({ 
+			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
 				footer: { text: "You won!" }
 			}));
-			pmo.edit(new Discord.MessageEmbed({ 
+			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ff0000",
@@ -399,13 +427,13 @@ function rockPaperScissorsCommand(msg, args) {
 				color: "#00ff00",
 				footer: { text: `${opponent.username} wins!` }
 			}));
-			pmc.edit(new Discord.MessageEmbed({ 
+			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ff0000",
 				footer: { text: "You lost!" }
 			}));
-			pmo.edit(new Discord.MessageEmbed({ 
+			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
