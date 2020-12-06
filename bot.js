@@ -5,7 +5,9 @@ const client = new Discord.Client();
 var config = {
 	prefix: "!"
 }
+var stat = {};
 if (fs.existsSync("config.json")) config = JSON.parse(fs.readFileSync("config.json", "utf-8"));
+if (fs.existsSync("stat.json")) stat = JSON.parse(fs.readFileSync("stat.json", "utf-8"));
 
 const token = fs.readFileSync("token.txt", "utf-8").trim();
 client.login(token);
@@ -30,8 +32,18 @@ client.on('message', (msg) => {
 	}
 });
 
+/**
+ * Saves the current configuration settings to a file.
+ */
 function saveConfig() {
 	fs.writeFile("config.json", JSON.stringify(config, null, 4), (err) => { if (err) throw err; });
+}
+
+/**
+ * Saves the current game stats to a file.
+ */
+function saveStats() {
+	fs.writeFile("stat.json", JSON.stringify(stat, null, 4), (err) => { if (err) throw err; });
 }
 
 // Commands
@@ -267,6 +279,12 @@ function rockPaperScissorsCommand(msg) {
 				footer: { text: "The game is a draw!" }
 			}));
 
+			checkUndefined(message.guild, challenger, opponent);
+			stat[message.guild.id].rps[challenger.id].draw++;
+			stat[message.guild.id].rps[opponent.id].draw++;
+			stat[message.guild.id].rps[challenger.id][opponent.id].draw++;
+			stat[message.guild.id].rps[opponent.id][challenger.id].draw++;
+
 		} else if (game.challenger === (game.opponent + 1) % 3) {
 
 			// Challenger wins
@@ -288,6 +306,12 @@ function rockPaperScissorsCommand(msg) {
 				color: "#ff0000",
 				footer: { text: "You lost!" }
 			}));
+
+			checkUndefined(message.guild, challenger, opponent);
+			stat[message.guild.id].rps[challenger.id].win++;
+			stat[message.guild.id].rps[opponent.id].loss++;
+			stat[message.guild.id].rps[challenger.id][opponent.id].win++;
+			stat[message.guild.id].rps[opponent.id][challenger.id].loss++;
 
 		} else {
 
@@ -311,7 +335,30 @@ function rockPaperScissorsCommand(msg) {
 				footer: { text: "You won!" }
 			}));
 
+			checkUndefined(message.guild, challenger, opponent);
+			stat[message.guild.id].rps[challenger.id].loss++;
+			stat[message.guild.id].rps[opponent.id].win++;
+			stat[message.guild.id].rps[challenger.id][opponent.id].loss++;
+			stat[message.guild.id].rps[opponent.id][challenger.id].win++;
+
 		}
+		saveStats();
 	}
 	
+	/**
+	 * Checks for undefined stats and creates empty data
+	 * if necessary.
+	 * @param {Discord.User} challenger - A challenger.
+	 * @param {Discord.User} opponent - An opponent.
+	 */
+	function checkUndefined(guild, challenger, opponent) {
+		if (stat[guild.id] === undefined) stat[guild.id] = {};
+		if (stat[guild.id].rps === undefined) stat[guild.id].rps = {};
+		if (challenger !== undefined) if (stat[guild.id].rps[challenger.id] === undefined) stat[guild.id].rps[challenger.id] = { win: 0, draw: 0, loss: 0 };
+		if (opponent !== undefined) if (stat[guild.id].rps[opponent.id] === undefined) stat[guild.id].rps[opponent.id] = { win: 0, draw: 0, loss: 0 };
+		if (challenger !== undefined && opponent !== undefined) {
+			if (stat[guild.id].rps[challenger.id][opponent.id] === undefined) stat[guild.id].rps[challenger.id][opponent.id] = { win: 0, draw: 0, loss: 0 };
+			if (stat[guild.id].rps[opponent.id][challenger.id] === undefined) stat[guild.id].rps[opponent.id][challenger.id] = { win: 0, draw: 0, loss: 0 };
+		}
+	}
 }
