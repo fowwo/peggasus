@@ -159,16 +159,27 @@ function rockPaperScissorsCommand(msg, args) {
 		let embed = new Discord.MessageEmbed({ 
 			title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 			description: `:crossed_swords: ${challenger.toString()} is challenging ${opponent.toString()} to a game of Rock Paper Scissors!`,
-			footer: { text: "Do you want to accept the challenge?" },
+			footer: { text: `${opponent.username} has 90 seconds to accept.` },
 			color: "#faa61a" 
 		});
 		msg.channel.send(embed).then((message) => {
 			message.react("✅");
 			message.react("❌");
+			let timeout = setTimeout(() => {
+				message.reactions.removeAll();
+				message.edit(new Discord.MessageEmbed({ 
+					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+					description: `:clock5: ${challenger.toString()}'s challenge to ${opponent.toString()} has timed out.`,
+					footer: { text: `${opponent.username} did not accept in time.` },
+					color: "#606060"
+				}));
+				collector.stop();
+			}, 90000);
 			let collector = message.createReactionCollector((reaction, user) => 
 				(user.id === challenger.id && reaction.emoji.name === "❌") ||
 				(user.id === opponent.id && (reaction.emoji.name === "✅" || reaction.emoji.name === "❌"))
 			).once("collect", (reaction, user) => {
+				clearTimeout(timeout);
 				if (reaction.emoji.name === "✅") {
 
 					// Challenge accepted
