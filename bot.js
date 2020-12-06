@@ -23,7 +23,7 @@ client.on('message', (msg) => {
 				configCommand(args);
 				break;
 			case "rps":
-				rockPaperScissorsCommand(msg);
+				rockPaperScissorsCommand(msg, args);
 				break;
 			default:
 				// Invalid command
@@ -68,9 +68,75 @@ function configCommand(args) {
  * The `rps` command. Used to start Rock Paper Scissors games.
  * @param {Discord.Message} msg 
  */
-function rockPaperScissorsCommand(msg) {
+function rockPaperScissorsCommand(msg, args) {
+
+	let mentions = msg.mentions.users.array();
+
+	switch (args[0].toLowerCase()) {
+		case "l":
+		case "list":
+		case "leaderboard":
+		case "score":
+		case "scores":
+		case "stat":
+		case "stats":
+			checkUndefined(msg.guild);
+			let arr = Object.entries(stat[msg.guild.id].rps).sort((a, b) => {
+				let x = (a[1].win + 0.5 * a[1].draw) / (a[1].win + a[1].draw + a[1].loss);
+				let y = (b[1].win + 0.5 * b[1].draw) / (b[1].win + b[1].draw + b[1].loss);
+				if (x < y) return 1;
+				else if (x > y) return -1;
+				else if (a[1].win < b[1].win) return 1;
+				else if (a[1].win > b[1].win) return -1;
+				return 0;
+			});
+
+			if (arr.length !== 0) {
+				let rank = 1;
+				let idArr = arr.map(x => x[0]);
+				msg.guild.members.fetch({ user: idArr }).then((users) => {
+					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((arr[0][1].win + 0.5 * arr[0][1].draw) / (arr[0][1].win + arr[0][1].draw + arr[0][1].loss)).toFixed(3)})\n-- **${arr[0][1].win}** win${arr[0][1].win === 1 ? "" : "s"} / **${arr[0][1].draw}** tie${arr[0][1].draw === 1 ? "" : "s"} / **${arr[0][1].loss}** loss${arr[0][1].loss === 1 ? "" : "es"}`;
+					for (var i = 1; i < arr.length; i++) {
+						let x = (arr[i][1].win + 0.5 * arr[i][1].draw) / (arr[i][1].win + arr[i][1].draw + arr[i][1].loss);
+						let y = (arr[i - 1][1].win + 0.5 * arr[i - 1][1].draw) / (arr[i - 1][1].win + arr[i - 1][1].draw + arr[i - 1][1].loss);
+						if (x != y) rank = i + 1;
+						switch (rank) {
+							case 1:
+								str += `\n:first_place:`
+								break;
+							case 2:
+								str += `\n:second_place:`
+								break;
+							case 3:
+								str += `\n:third_place:`
+								break;
+							default:
+								str += `\n**${rank}.**`
+								break;
+
+						}
+						str += ` **${users.get(arr[i][0]).user.username}** (${((arr[i][1].win + 0.5 * arr[i][1].draw) / (arr[i][1].win + arr[i][1].draw + arr[i][1].loss)).toFixed(3)})\n-- **${arr[i][1].win}** win${arr[i][1].win === 1 ? "" : "s"} / **${arr[i][1].draw}** tie${arr[i][1].draw === 1 ? "" : "s"} / **${arr[i][1].loss}** loss${arr[i][1].loss === 1 ? "" : "es"}`;
+					}
+					msg.channel.send(new Discord.MessageEmbed({ 
+						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+						description: str,
+						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+						color: "#faa61a"
+					}));
+				});
+			} else {
+				msg.channel.send(new Discord.MessageEmbed({ 
+					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+					description: "No players to list.",
+					color: "#faa61a"
+				}));
+			}
+			msg.delete();
+			return;
+	}
+
 	let challenger = msg.author;
-	let opponent = msg.mentions.users.array()[0];
+	let opponent = mentions[0];
 	if (opponent === undefined) return;
 	
 	if (challenger.id === opponent.id) {
