@@ -92,50 +92,101 @@ function rockPaperScissorsCommand(msg, args) {
 				else if (ao.win > bo.win) return -1;
 				return 0;
 			});
-
-			if (arr.length !== 0) {
-				let rank = 1;
-				let idArr = arr.map(x => x[0]);
-				msg.guild.members.fetch({ user: idArr }).then((users) => {
-					let o = { win: arr[0][1].win.rock + arr[0][1].win.paper + arr[0][1].win.scissors, draw: arr[0][1].draw.rock + arr[0][1].draw.paper + arr[0][1].draw.scissors, loss: arr[0][1].loss.rock + arr[0][1].loss.paper + arr[0][1].loss.scissors };
-					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
-					for (var i = 1; i < arr.length; i++) {
-						let ao = { win: arr[i][1].win.rock + arr[i][1].win.paper + arr[i][1].win.scissors, draw: arr[i][1].draw.rock + arr[i][1].draw.paper + arr[i][1].draw.scissors, loss: arr[i][1].loss.rock + arr[i][1].loss.paper + arr[i][1].loss.scissors };
-						let bo = { win: arr[i - 1][1].win.rock + arr[i - 1][1].win.paper + arr[i - 1][1].win.scissors, draw: arr[i - 1][1].draw.rock + arr[i - 1][1].draw.paper + arr[i - 1][1].draw.scissors, loss: arr[i - 1][1].loss.rock + arr[i - 1][1].loss.paper + arr[i - 1][1].loss.scissors };		
-						let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-						let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-						if (x != y) rank = i + 1;
-						switch (rank) {
-							case 1:
-								str += `\n:first_place:`
-								break;
-							case 2:
-								str += `\n:second_place:`
-								break;
-							case 3:
-								str += `\n:third_place:`
-								break;
-							default:
-								str += `\n**${rank}.**`
-								break;
+			if (mentions.length === 1) {
+				if (stat[msg.guild.id].rps[mentions[0].id] !== undefined) {
+					let rank = 0;
+					for (rank = 0; rank < arr.length; rank++) {
+						if (arr[rank][0] == mentions[0].id) {
+							rank++;
+							break;
 						}
-						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
 					}
+					let user = stat[msg.guild.id].rps[mentions[0].id];
+					let str = "";
+					switch (rank) {
+						case 1:
+							str = `\n:first_place:`;
+							break;
+						case 2:
+							str = `\n:second_place:`;
+							break;
+						case 3:
+							str = `\n:third_place:`;
+							break;
+						default:
+							str = `\n**${rank}.**`;
+							break;
+					}
+					let o = { win: user.win.rock + user.win.paper + user.win.scissors, draw: user.draw.rock + user.draw.paper + user.draw.scissors, loss: user.loss.rock + user.loss.paper + user.loss.scissors };
+					let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
+					str += ` **${mentions[0].username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${user.win.rock + user.draw.rock + user.loss.rock}** :rock: / **${user.win.paper + user.draw.paper + user.loss.paper}** :page_facing_up: / **${user.win.scissors + user.draw.scissors + user.loss.scissors}** :scissors:`;
+
+					let idArr = arr.map(x => x[0]).filter((x) => { return stat[msg.guild.id].rps[mentions[0].id][x] !== undefined });
+					msg.guild.members.fetch({ user: idArr }).then((users) => {
+						for (var opp of Object.keys(user)) {
+							if (opp == "win" || opp == "draw" || opp == "loss") continue;
+							str += `\n${mentions[0].username} - **${user[opp].win.rock + user[opp].win.paper + user[opp].win.scissors}** / **${user[opp].draw.rock + user[opp].draw.paper + user[opp].draw.scissors}** / **${user[opp].loss.rock + user[opp].loss.paper + user[opp].loss.scissors}** - ${users.get(opp).user.username}`;
+						}
+						msg.channel.send(new Discord.MessageEmbed({ 
+							title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+							description: str,
+							footer: { text: `Listing ${mentions[0].username}'s stats.` },
+							color: "#faa61a"
+						}));
+					});
+				} else {
 					msg.channel.send(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-						description: str,
-						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+						description: `${mentions[0].toString()} hasn't played Rock Paper Scissors yet.`,
 						color: "#faa61a"
 					}));
-				});
+				}
+				msg.delete();
 			} else {
-				msg.channel.send(new Discord.MessageEmbed({ 
-					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-					description: "No players to list.",
-					color: "#faa61a"
-				}));
+				if (arr.length !== 0) {
+					let rank = 1;
+					let idArr = arr.map(x => x[0]);
+					msg.guild.members.fetch({ user: idArr }).then((users) => {
+						let o = { win: arr[0][1].win.rock + arr[0][1].win.paper + arr[0][1].win.scissors, draw: arr[0][1].draw.rock + arr[0][1].draw.paper + arr[0][1].draw.scissors, loss: arr[0][1].loss.rock + arr[0][1].loss.paper + arr[0][1].loss.scissors };
+						let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
+						for (var i = 1; i < arr.length; i++) {
+							let ao = { win: arr[i][1].win.rock + arr[i][1].win.paper + arr[i][1].win.scissors, draw: arr[i][1].draw.rock + arr[i][1].draw.paper + arr[i][1].draw.scissors, loss: arr[i][1].loss.rock + arr[i][1].loss.paper + arr[i][1].loss.scissors };
+							let bo = { win: arr[i - 1][1].win.rock + arr[i - 1][1].win.paper + arr[i - 1][1].win.scissors, draw: arr[i - 1][1].draw.rock + arr[i - 1][1].draw.paper + arr[i - 1][1].draw.scissors, loss: arr[i - 1][1].loss.rock + arr[i - 1][1].loss.paper + arr[i - 1][1].loss.scissors };		
+							let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+							let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+							if (x != y) rank = i + 1;
+							switch (rank) {
+								case 1:
+									str += `\n:first_place:`
+									break;
+								case 2:
+									str += `\n:second_place:`
+									break;
+								case 3:
+									str += `\n:third_place:`
+									break;
+								default:
+									str += `\n**${rank}.**`
+									break;
+							}
+							str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
+						}
+						msg.channel.send(new Discord.MessageEmbed({ 
+							title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+							description: str,
+							footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+							color: "#faa61a"
+						}));
+					});
+				} else {
+					msg.channel.send(new Discord.MessageEmbed({ 
+						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+						description: "No players to list.",
+						color: "#faa61a"
+					}));
+				}
+				msg.delete();
 			}
-			msg.delete();
 			return;
 	}
 
