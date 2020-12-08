@@ -82,12 +82,14 @@ function rockPaperScissorsCommand(msg, args) {
 		case "stats":
 			checkUndefined(msg.guild);
 			let arr = Object.entries(stat[msg.guild.id].rps).sort((a, b) => {
-				let x = (a[1].win + 0.5 * a[1].draw) / (a[1].win + a[1].draw + a[1].loss);
-				let y = (b[1].win + 0.5 * b[1].draw) / (b[1].win + b[1].draw + b[1].loss);
+				let ao = { win: a[1].win.rock + a[1].win.paper + a[1].win.scissors, draw: a[1].draw.rock + a[1].draw.paper + a[1].draw.scissors, loss: a[1].loss.rock + a[1].loss.paper + a[1].loss.scissors };
+				let bo = { win: b[1].win.rock + b[1].win.paper + b[1].win.scissors, draw: b[1].draw.rock + b[1].draw.paper + b[1].draw.scissors, loss: b[1].loss.rock + b[1].loss.paper + b[1].loss.scissors };
+				let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+				let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
 				if (x < y) return 1;
 				else if (x > y) return -1;
-				else if (a[1].win < b[1].win) return 1;
-				else if (a[1].win > b[1].win) return -1;
+				else if (ao.win < bo.win) return 1;
+				else if (ao.win > bo.win) return -1;
 				return 0;
 			});
 
@@ -95,10 +97,13 @@ function rockPaperScissorsCommand(msg, args) {
 				let rank = 1;
 				let idArr = arr.map(x => x[0]);
 				msg.guild.members.fetch({ user: idArr }).then((users) => {
-					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((arr[0][1].win + 0.5 * arr[0][1].draw) / (arr[0][1].win + arr[0][1].draw + arr[0][1].loss)).toFixed(3)})\n-- **${arr[0][1].win}** win${arr[0][1].win === 1 ? "" : "s"} / **${arr[0][1].draw}** tie${arr[0][1].draw === 1 ? "" : "s"} / **${arr[0][1].loss}** loss${arr[0][1].loss === 1 ? "" : "es"}`;
+					let o = { win: arr[0][1].win.rock + arr[0][1].win.paper + arr[0][1].win.scissors, draw: arr[0][1].draw.rock + arr[0][1].draw.paper + arr[0][1].draw.scissors, loss: arr[0][1].loss.rock + arr[0][1].loss.paper + arr[0][1].loss.scissors };
+					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
 					for (var i = 1; i < arr.length; i++) {
-						let x = (arr[i][1].win + 0.5 * arr[i][1].draw) / (arr[i][1].win + arr[i][1].draw + arr[i][1].loss);
-						let y = (arr[i - 1][1].win + 0.5 * arr[i - 1][1].draw) / (arr[i - 1][1].win + arr[i - 1][1].draw + arr[i - 1][1].loss);
+						let ao = { win: arr[i][1].win.rock + arr[i][1].win.paper + arr[i][1].win.scissors, draw: arr[i][1].draw.rock + arr[i][1].draw.paper + arr[i][1].draw.scissors, loss: arr[i][1].loss.rock + arr[i][1].loss.paper + arr[i][1].loss.scissors };
+						let bo = { win: arr[i - 1][1].win.rock + arr[i - 1][1].win.paper + arr[i - 1][1].win.scissors, draw: arr[i - 1][1].draw.rock + arr[i - 1][1].draw.paper + arr[i - 1][1].draw.scissors, loss: arr[i - 1][1].loss.rock + arr[i - 1][1].loss.paper + arr[i - 1][1].loss.scissors };		
+						let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+						let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
 						if (x != y) rank = i + 1;
 						switch (rank) {
 							case 1:
@@ -113,9 +118,8 @@ function rockPaperScissorsCommand(msg, args) {
 							default:
 								str += `\n**${rank}.**`
 								break;
-
 						}
-						str += ` **${users.get(arr[i][0]).user.username}** (${((arr[i][1].win + 0.5 * arr[i][1].draw) / (arr[i][1].win + arr[i][1].draw + arr[i][1].loss)).toFixed(3)})\n-- **${arr[i][1].win}** win${arr[i][1].win === 1 ? "" : "s"} / **${arr[i][1].draw}** tie${arr[i][1].draw === 1 ? "" : "s"} / **${arr[i][1].loss}** loss${arr[i][1].loss === 1 ? "" : "es"}`;
+						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
 					}
 					msg.channel.send(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
@@ -343,7 +347,7 @@ function rockPaperScissorsCommand(msg, args) {
 	 * Returns the emoji corresponding to the option.
 	 * @param {Number} option - The number representing the choice.
 	 */
-	function optionEmoji(option) {
+	function optionToEmoji(option) {
 		switch (option) {
 			case 0:
 				return ":rock:";
@@ -351,6 +355,21 @@ function rockPaperScissorsCommand(msg, args) {
 				return ":page_facing_up:";
 			case 2:
 				return ":scissors:";
+		}
+	}
+
+	/**
+	 * Returns the key name corresponding to the option.
+	 * @param {Number} option - The option.
+	 */
+	function optionToKey(option) {
+		switch (option) {
+			case 0:
+				return "rock";
+			case 1:
+				return "paper";
+			case 2:
+				return "scissors";
 		}
 	}
 
@@ -367,84 +386,84 @@ function rockPaperScissorsCommand(msg, args) {
 			// Tie
 			message.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
 				footer: { text: "The game is a draw!" }
 			}));
 			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ffe100",
 				footer: { text: "The game is a draw!" }
 			}));
 			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ffe100",
 				footer: { text: "The game is a draw!" }
 			}));
 
 			checkUndefined(message.guild, challenger, opponent);
-			stat[message.guild.id].rps[challenger.id].draw++;
-			stat[message.guild.id].rps[opponent.id].draw++;
-			stat[message.guild.id].rps[challenger.id][opponent.id].draw++;
-			stat[message.guild.id].rps[opponent.id][challenger.id].draw++;
+			stat[message.guild.id].rps[challenger.id].draw[optionToKey(game.challenger)]++;
+			stat[message.guild.id].rps[opponent.id].draw[optionToKey(game.opponent)]++;
+			stat[message.guild.id].rps[challenger.id][opponent.id].draw[optionToKey(game.opponent)]++;
+			stat[message.guild.id].rps[opponent.id][challenger.id].draw[optionToKey(game.challenger)]++;
 
 		} else if (game.challenger === (game.opponent + 1) % 3) {
 
 			// Challenger wins
 			message.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
 				footer: { text: `${challenger.username} wins!` }
 			}));
 			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
 				footer: { text: "You won!" }
 			}));
 			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ff0000",
 				footer: { text: "You lost!" }
 			}));
 
 			checkUndefined(message.guild, challenger, opponent);
-			stat[message.guild.id].rps[challenger.id].win++;
-			stat[message.guild.id].rps[opponent.id].loss++;
-			stat[message.guild.id].rps[challenger.id][opponent.id].win++;
-			stat[message.guild.id].rps[opponent.id][challenger.id].loss++;
+			stat[message.guild.id].rps[challenger.id].win[optionToKey(game.challenger)]++;
+			stat[message.guild.id].rps[opponent.id].loss[optionToKey(game.opponent)]++;
+			stat[message.guild.id].rps[challenger.id][opponent.id].win[optionToKey(game.opponent)]++;
+			stat[message.guild.id].rps[opponent.id][challenger.id].loss[optionToKey(game.challenger)]++;
 
 		} else {
 
 			// Opponent wins
 			message.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
 				footer: { text: `${opponent.username} wins!` }
 			}));
 			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#ff0000",
 				footer: { text: "You lost!" }
 			}));
 			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({ 
 				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: `${challenger.toString()} ${optionEmoji(game.challenger)} vs. ${optionEmoji(game.opponent)} ${opponent.toString()}`,
+				description: `${challenger.toString()} ${optionToEmoji(game.challenger)} vs. ${optionToEmoji(game.opponent)} ${opponent.toString()}`,
 				color: "#00ff00",
 				footer: { text: "You won!" }
 			}));
 
 			checkUndefined(message.guild, challenger, opponent);
-			stat[message.guild.id].rps[challenger.id].loss++;
-			stat[message.guild.id].rps[opponent.id].win++;
-			stat[message.guild.id].rps[challenger.id][opponent.id].loss++;
-			stat[message.guild.id].rps[opponent.id][challenger.id].win++;
+			stat[message.guild.id].rps[challenger.id].loss[optionToKey(game.challenger)]++;
+			stat[message.guild.id].rps[opponent.id].win[optionToKey(game.opponent)]++;
+			stat[message.guild.id].rps[challenger.id][opponent.id].loss[optionToKey(game.opponent)]++;
+			stat[message.guild.id].rps[opponent.id][challenger.id].win[optionToKey(game.challenger)]++;
 
 		}
 		saveStats();
@@ -459,11 +478,11 @@ function rockPaperScissorsCommand(msg, args) {
 	function checkUndefined(guild, challenger, opponent) {
 		if (stat[guild.id] === undefined) stat[guild.id] = {};
 		if (stat[guild.id].rps === undefined) stat[guild.id].rps = {};
-		if (challenger !== undefined) if (stat[guild.id].rps[challenger.id] === undefined) stat[guild.id].rps[challenger.id] = { win: 0, draw: 0, loss: 0 };
-		if (opponent !== undefined) if (stat[guild.id].rps[opponent.id] === undefined) stat[guild.id].rps[opponent.id] = { win: 0, draw: 0, loss: 0 };
+		if (challenger !== undefined) if (stat[guild.id].rps[challenger.id] === undefined) stat[guild.id].rps[challenger.id] = { win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } };
+		if (opponent !== undefined) if (stat[guild.id].rps[opponent.id] === undefined) stat[guild.id].rps[opponent.id] = { win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } };
 		if (challenger !== undefined && opponent !== undefined) {
-			if (stat[guild.id].rps[challenger.id][opponent.id] === undefined) stat[guild.id].rps[challenger.id][opponent.id] = { win: 0, draw: 0, loss: 0 };
-			if (stat[guild.id].rps[opponent.id][challenger.id] === undefined) stat[guild.id].rps[opponent.id][challenger.id] = { win: 0, draw: 0, loss: 0 };
+			if (stat[guild.id].rps[challenger.id][opponent.id] === undefined) stat[guild.id].rps[challenger.id][opponent.id] = { win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } };
+			if (stat[guild.id].rps[opponent.id][challenger.id] === undefined) stat[guild.id].rps[opponent.id][challenger.id] = { win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } };
 		}
 	}
 }
