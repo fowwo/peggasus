@@ -4,3 +4,7 @@ token.txt
 # Personal information
 config.json
 stat.json
+
+# Other
+/backup/
+/tool/
