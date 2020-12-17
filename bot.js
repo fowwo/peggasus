@@ -25,6 +25,11 @@ client.on('message', (msg) => {
 			case "rps":
 				rockPaperScissorsCommand(msg, args);
 				break;
+			case "tic-tac-toe":
+			case "tictactoe":
+			case "ttt":
+				ticTacToeCommand(msg, args);
+				break;
 			default:
 				// Invalid command
 				break;
@@ -534,6 +539,250 @@ function rockPaperScissorsCommand(msg, args) {
 		if (challenger !== undefined && opponent !== undefined) {
 			if (stat[guild.id].rps[challenger.id][opponent.id] === undefined) stat[guild.id].rps[challenger.id][opponent.id] = { win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } };
 			if (stat[guild.id].rps[opponent.id][challenger.id] === undefined) stat[guild.id].rps[opponent.id][challenger.id] = { win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } };
+		}
+	}
+}
+
+/**
+ * Used to start Tic-Tac-Toe games.
+ * 
+ * `!ttt` `!tictactoe` `!tic-tac-toe`
+ * @param {Discord.Message} msg 
+ * @param {String[]} args 
+ */
+function ticTacToeCommand(msg, args) {
+
+	let mentions = msg.mentions.users.array();
+	const embedTitle = ":x: :o: :x: Tic-Tac-Toe";
+
+	let challenger = msg.author;
+	let opponent = mentions[0];
+	if (opponent === undefined) return;
+	
+	if (challenger.id === opponent.id) {
+		msg.channel.send(new Discord.MessageEmbed({ 
+			title: embedTitle,
+			description: `:no_entry_sign: You can't challenge yourself, ${challenger.toString()}!`,
+			color: "#ff0000"
+		})).then((message) => {
+			setTimeout(() => { message.delete(); }, 5000);
+		});
+	} else if (challenger.bot || opponent.bot) {
+		msg.channel.send(new Discord.MessageEmbed({ 
+			title: embedTitle,
+			description: `:no_entry_sign: You can't challenge bots, ${challenger.toString()}.`,
+			color: "#ff0000"
+		})).then((message) => {
+			setTimeout(() => { message.delete(); }, 5000);
+		});
+	} else {
+		let embed = new Discord.MessageEmbed({ 
+			title: embedTitle,
+			description: `:crossed_swords: ${challenger.toString()} is challenging ${opponent.toString()} to a game of Tic-Tac-Toe!`,
+			footer: { text: `${opponent.username} has 90 seconds to accept.` },
+			color: "#faa61a" 
+		});
+		msg.channel.send(embed).then((message) => {
+			message.react("✅");
+			message.react("❌");
+			let timeout = setTimeout(() => {
+				message.reactions.removeAll();
+				message.edit(new Discord.MessageEmbed({ 
+					title: embedTitle,
+					description: `:clock5: ${challenger.toString()}'s challenge to ${opponent.toString()} has timed out.`,
+					footer: { text: `${opponent.username} did not accept in time.` },
+					color: "#606060"
+				}));
+				collector.stop();
+			}, 90000);
+			let collector = message.createReactionCollector((reaction, user) => 
+				(user.id === challenger.id && reaction.emoji.name === "❌") ||
+				(user.id === opponent.id && (reaction.emoji.name === "✅" || reaction.emoji.name === "❌"))
+			).once("collect", (reaction, user) => {
+				clearTimeout(timeout);
+				if (reaction.emoji.name === "✅") {
+
+					// Challenge accepted
+					message.reactions.removeAll();
+	
+					let players = [ msg.author, mentions[0] ];
+					let game = [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
+					let turn = 1;
+					const xPlayer = players.splice(Math.round(Math.random()), 1)[0];
+					const oPlayer = players.pop();
+
+					message.edit(new Discord.MessageEmbed({ 
+						title: embedTitle,
+						description: makeBoard(game, xPlayer, oPlayer),
+						footer: { text: `${xPlayer.username}'s turn.` },
+						color: "#bbbbff"
+					}));
+					message.react("1️⃣");
+					message.react("2️⃣");
+					message.react("3️⃣");
+					message.react("4️⃣");
+					message.react("5️⃣");
+					message.react("6️⃣");
+					message.react("7️⃣");
+					message.react("8️⃣");
+					message.react("9️⃣");
+					
+					let gameCollector = message.createReactionCollector((reaction, user) => 
+						((user.id === xPlayer.id && turn === 1) || (user.id === oPlayer.id && turn === 2)) && emojiToIndex(reaction.emoji) !== -1
+					).on("collect", (reaction, user) => {
+						let i = emojiToIndex(reaction.emoji);
+						if (game[i] === 0) {
+							game[i] = turn;
+							turn = turn % 2 + 1;
+							let win = determineOutcome(game);
+							if (win !== -1) {
+								checkUndefined(message.guild, xPlayer, oPlayer);
+								if (win === 1) {
+									// X wins.
+									message.edit(new Discord.MessageEmbed({ 
+										title: embedTitle,
+										description: makeBoard(game, xPlayer, oPlayer),
+										color: "#00ff00",
+										footer: { text: `${xPlayer.username} wins!` }
+									}));
+						
+									stat[message.guild.id].ttt[xPlayer.id].win.x++;
+									stat[message.guild.id].ttt[oPlayer.id].loss.o++;
+									stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].win.x++;
+									stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].loss.o++;
+								} else if (win === 2) {
+									// O wins.
+									message.edit(new Discord.MessageEmbed({ 
+										title: embedTitle,
+										description: makeBoard(game, xPlayer, oPlayer),
+										color: "#00ff00",
+										footer: { text: `${oPlayer.username} wins!` }
+									}));
+
+									stat[message.guild.id].ttt[xPlayer.id].loss.x++;
+									stat[message.guild.id].ttt[oPlayer.id].win.o++;
+									stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].loss.x++;
+									stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].win.o++;
+								} else {
+									// The game is a draw.
+									message.edit(new Discord.MessageEmbed({ 
+										title: embedTitle,
+										description: makeBoard(game, xPlayer, oPlayer),
+										color: "#00ff00",
+										footer: { text: "The game is a draw!" }
+									}));
+
+									stat[message.guild.id].ttt[xPlayer.id].draw.x++;
+									stat[message.guild.id].ttt[oPlayer.id].draw.o++;
+									stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].draw.x++;
+									stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].draw.o++;
+								}
+								saveStats();
+								gameCollector.stop();
+							} else {
+								message.edit(new Discord.MessageEmbed({ 
+									title: embedTitle,
+									description: makeBoard(game, xPlayer, oPlayer),
+									color: "#bbbbff",
+									footer: { text: `${turn === 1 ? xPlayer.username : oPlayer.username}'s turn.` }
+								}));
+							}
+						}
+					});
+
+				} else if (user.id === opponent.id) {
+
+					// Challenge declined
+					message.reactions.removeAll();
+					message.edit(new Discord.MessageEmbed({ 
+						title: embedTitle,
+						description: `:no_entry_sign: ${opponent.toString()} declined ${challenger.toString()}'s challenge.`,
+						color: "#ff0000"
+					}));
+
+				} else {
+
+					// Challenge cancelled
+					message.delete();
+
+				}
+				collector.stop();
+			});
+		});
+	}
+	msg.delete();
+
+	/**
+	 * Draws the board from the given game data.
+	 * @param {Number[]} game - The game data.
+	 * @param {Discord.User} xPlayer
+	 * @param {Discord.User} oPlayer
+	 */
+	function makeBoard(game, xPlayer, oPlayer) {
+		return `\`\`\`elm\n${game[0] === 0 ? '1' : game[0] === 1 ? 'X' : 'O'} │ ${game[1] === 0 ? '2' : game[1] === 1 ? 'X' : 'O'} │ ${game[2] === 0 ? '3' : game[2] === 1 ? 'X' : 'O'}\n──┼───┼──    X - ${xPlayer.username}   \n${game[3] === 0 ? '4' : game[3] === 1 ? 'X' : 'O'} │ ${game[4] === 0 ? '5' : game[4] === 1 ? 'X' : 'O'} │ ${game[5] === 0 ? '6' : game[5] === 1 ? 'X' : 'O'}\n──┼───┼──    O - ${oPlayer.username}   \n${game[6] === 0 ? '7' : game[6] === 1 ? 'X' : 'O'} │ ${game[7] === 0 ? '8' : game[7] === 1 ? 'X' : 'O'} │ ${game[8] === 0 ? '9' : game[8] === 1 ? 'X' : 'O'}\`\`\``;
+	}
+
+	/**
+	 * Returns the index corresponding to an emoji.
+	 * @param {Discord.Emoji} emoji - The emoji.
+	 */
+	function emojiToIndex(emoji) {
+		switch (emoji.name) {
+			case "1️⃣":
+				return 0;
+			case "2️⃣":
+				return 1;
+			case "3️⃣":
+				return 2;
+			case "4️⃣":
+				return 3;
+			case "5️⃣":
+				return 4;
+			case "6️⃣":
+				return 5;
+			case "7️⃣":
+				return 6;
+			case "8️⃣":
+				return 7;
+			case "9️⃣":
+				return 8;
+			default:
+				return -1;
+		}
+	}
+
+	/**
+	 * Checks if the game has a winner.
+	 * @param {Number[]} game - The game data.
+	 */
+	function determineOutcome(game) {
+		if ((game[0] !== 0 && game[0] === game[1] && game[1] === game[2])) return game[0]; // Top Row
+		if ((game[3] !== 0 && game[3] === game[4] && game[4] === game[5])) return game[3]; // Middle Row
+		if ((game[6] !== 0 && game[6] === game[7] && game[7] === game[8])) return game[6]; // Bottom Row
+		if ((game[0] !== 0 && game[0] === game[3] && game[3] === game[6])) return game[0]; // Left Column
+		if ((game[1] !== 0 && game[1] === game[4] && game[4] === game[7])) return game[1]; // Middle Column
+		if ((game[2] !== 0 && game[2] === game[5] && game[5] === game[8])) return game[2]; // Right Column
+		if ((game[0] !== 0 && game[0] === game[4] && game[4] === game[8])) return game[0]; // Down-Right
+		if ((game[2] !== 0 && game[2] === game[4] && game[4] === game[6])) return game[2]; // Down-Left
+
+		if (game.indexOf(0) === -1) return 0; // The game is a draw.
+		return -1; // The game is still in progress.
+	}
+	
+	/**
+	 * Checks for undefined stats and creates empty data
+	 * if necessary.
+	 * @param {Discord.User} xPlayer
+	 * @param {Discord.User} oPlayer
+	 */
+	function checkUndefined(guild, xPlayer, oPlayer) {
+		if (stat[guild.id] === undefined) stat[guild.id] = {};
+		if (stat[guild.id].ttt === undefined) stat[guild.id].ttt = {};
+		if (xPlayer !== undefined) if (stat[guild.id].ttt[xPlayer.id] === undefined) stat[guild.id].ttt[xPlayer.id] = { win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } };
+		if (oPlayer !== undefined) if (stat[guild.id].ttt[oPlayer.id] === undefined) stat[guild.id].ttt[oPlayer.id] = { win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } };
+		if (xPlayer !== undefined && oPlayer !== undefined) {
+			if (stat[guild.id].ttt[xPlayer.id][oPlayer.id] === undefined) stat[guild.id].ttt[xPlayer.id][oPlayer.id] = { win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } };
+			if (stat[guild.id].ttt[oPlayer.id][xPlayer.id] === undefined) stat[guild.id].ttt[oPlayer.id][xPlayer.id] = { win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } };
 		}
 	}
 }
