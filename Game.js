@@ -13,6 +13,7 @@ class Game {
 	 * @param {String} prefix - The game title's prefix.
 	 */
 	constructor(client, channel, title, code, prefix) {
+		if (new.target === Game) throw new TypeError("Cannot create instance of an abstract game.");
 		this.client = client;
 		this.channel = channel;
 		this.title = title;
@@ -43,6 +44,7 @@ class Duel extends Game {
 	 */
 	constructor(client, channel, title, code, prefix, challenger, opponent, allowBotOpponent = false) {
 		super(client, channel, title, code, prefix);
+		if (new.target === Duel) throw new TypeError("Cannot create instance of an abstract duel.");
 		this.challenger = challenger;
 		this.opponent = opponent;
 		this.allowBotOpponent = allowBotOpponent;
