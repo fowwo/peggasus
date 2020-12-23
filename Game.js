@@ -143,5 +143,25 @@ class Duel extends Game {
 		}
 	}
 
+	/**
+	 * Checks for undefined stats and creates data if necessary.
+	 * @param {{}} stat - The object containing game stats.
+	 * @param {Discord.Guild} guild - The guild in which the game is being played.
+	 * @param {String} code - The shorthand name of the game.
+	 * @param {Discord.User} user1
+	 * @param {Discord.User} user2
+	 * @param {} defaultData - The data to create for undefined stats.
+	 */
+	static checkUndefined(stat, guild, code, user1, user2, defaultData) {
+		if (stat[guild.id] === undefined) stat[guild.id] = {};
+		if (stat[guild.id][code] === undefined) stat[guild.id][code] = {};
+		if (user1 !== undefined) if (stat[guild.id][code][user1.id] === undefined) stat[guild.id][code][user1.id] = defaultData;
+		if (user2 !== undefined) if (stat[guild.id][code][user2.id] === undefined) stat[guild.id][code][user2.id] = defaultData;
+		if (user1 !== undefined && user2 !== undefined) {
+			if (stat[guild.id][code][user1.id][user2.id] === undefined) stat[guild.id][code][user1.id][user2.id] = defaultData;
+			if (stat[guild.id][code][user2.id][user1.id] === undefined) stat[guild.id][code][user2.id][user1.id] = defaultData;
+		}
+	}
+
 }
 
