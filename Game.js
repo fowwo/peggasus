@@ -26,6 +26,11 @@ class Game {
 		this.title = title;
 		this.code = code;
 		this.prefix = prefix;
+		this.endFunction = () => {};
+	}
+
+	onEnd(fn) {
+		this.endFunction = fn;
 	}
 
 	toString() {
