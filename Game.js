@@ -168,11 +168,11 @@ class Duel extends Game {
 	static checkUndefined(stat, guild, code, user1, user2, defaultData) {
 		if (stat[guild.id] === undefined) stat[guild.id] = {};
 		if (stat[guild.id][code] === undefined) stat[guild.id][code] = {};
-		if (user1 !== undefined) if (stat[guild.id][code][user1.id] === undefined) stat[guild.id][code][user1.id] = defaultData;
-		if (user2 !== undefined) if (stat[guild.id][code][user2.id] === undefined) stat[guild.id][code][user2.id] = defaultData;
+		if (user1 !== undefined) if (stat[guild.id][code][user1.id] === undefined) stat[guild.id][code][user1.id] = JSON.parse(JSON.stringify(defaultData));
+		if (user2 !== undefined) if (stat[guild.id][code][user2.id] === undefined) stat[guild.id][code][user2.id] = JSON.parse(JSON.stringify(defaultData));
 		if (user1 !== undefined && user2 !== undefined) {
-			if (stat[guild.id][code][user1.id][user2.id] === undefined) stat[guild.id][code][user1.id][user2.id] = defaultData;
-			if (stat[guild.id][code][user2.id][user1.id] === undefined) stat[guild.id][code][user2.id][user1.id] = defaultData;
+			if (stat[guild.id][code][user1.id][user2.id] === undefined) stat[guild.id][code][user1.id][user2.id] = JSON.parse(JSON.stringify(defaultData));
+			if (stat[guild.id][code][user2.id][user1.id] === undefined) stat[guild.id][code][user2.id][user1.id] = JSON.parse(JSON.stringify(defaultData));
 		}
 	}
 
