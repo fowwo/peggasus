@@ -13,14 +13,16 @@ class Game {
 	/**
 	 * @param {Discord.Client} client - The client.
 	 * @param {Discord.TextChannel} channel - The channel where the game is created.
+	 * @param {{}} stat - The object containing game stats.
 	 * @param {String} title - The name of the game.
 	 * @param {String} code - The shorthand name of the game.
 	 * @param {String} prefix - The game title's prefix.
 	 */
-	constructor(client, channel, title, code, prefix) {
+	constructor(client, channel, stat, title, code, prefix) {
 		if (new.target === Game) throw new TypeError("Cannot create instance of an abstract game.");
 		this.client = client;
 		this.channel = channel;
+		this.stat = stat;
 		this.title = title;
 		this.code = code;
 		this.prefix = prefix;
@@ -40,6 +42,7 @@ class Duel extends Game {
 	/**
 	 * @param {Discord.Client} client - The client.
 	 * @param {Discord.TextChannel} channel - The channel where the game is created.
+	 * @param {{}} stat - The object containing game stats.
 	 * @param {String} title - The name of the game.
 	 * @param {String} code - The shorthand name of the game.
 	 * @param {String} prefix - The game title's prefix.
@@ -47,9 +50,9 @@ class Duel extends Game {
 	 * @param {Discord.User} opponent - The user being faced against.
 	 * @param {Boolean} allowBotOpponent - Whether or not a user can challenge the bot.
 	 */
-	constructor(client, channel, title, code, prefix, challenger, opponent, allowBotOpponent = false) {
-		super(client, channel, title, code, prefix);
+	constructor(client, channel, stat, title, code, prefix, challenger, opponent, allowBotOpponent = false) {
 		if (new.target === Duel) throw new TypeError("Cannot create instance of an abstract duel.");
+		super(client, channel, stat, title, code, prefix);
 		this.challenger = challenger;
 		this.opponent = opponent;
 		this.allowBotOpponent = allowBotOpponent;
