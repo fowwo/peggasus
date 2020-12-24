@@ -432,6 +432,123 @@ class RockPaperScissors extends Duel {
 	}
 
 	/**
+	 * Makes a leaderboard for Rock Paper Scissors.
+	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
+	 * @param {{}} stat - The object containing game stats.
+	 * @param {Discord.Guild} guild - The guild to list stats for.
+	 * @param {Discord.User} user - (Optional) The user to list stats for.
+	 */
+	static sendLeaderboard(channel, stat, guild, user) {
+		RockPaperScissors.checkUndefined(stat, guild, "rps", user, undefined,
+			{ win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } }
+		);
+		let arr = Object.entries(stat[guild.id].rps).sort((a, b) => {
+			let ao = { win: a[1].win.rock + a[1].win.paper + a[1].win.scissors, draw: a[1].draw.rock + a[1].draw.paper + a[1].draw.scissors, loss: a[1].loss.rock + a[1].loss.paper + a[1].loss.scissors };
+			let bo = { win: b[1].win.rock + b[1].win.paper + b[1].win.scissors, draw: b[1].draw.rock + b[1].draw.paper + b[1].draw.scissors, loss: b[1].loss.rock + b[1].loss.paper + b[1].loss.scissors };
+			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+			if (x < y) return 1;
+			else if (x > y) return -1;
+			else if (ao.win < bo.win) return 1;
+			else if (ao.win > bo.win) return -1;
+			return 0;
+		});
+		if (user !== undefined) {
+			if (stat[guild.id].rps[user.id] !== undefined) {
+				let rank = 0;
+				for (rank = 0; rank < arr.length; rank++) {
+					if (arr[rank][0] == user.id) {
+						rank++;
+						break;
+					}
+				}
+				let userID = stat[guild.id].rps[user.id];
+				let str = "";
+				switch (rank) {
+					case 1:
+						str = `\n:first_place:`;
+						break;
+					case 2:
+						str = `\n:second_place:`;
+						break;
+					case 3:
+						str = `\n:third_place:`;
+						break;
+					default:
+						str = `\n**${rank}.**`;
+						break;
+				}
+				let o = { win: userID.win.rock + userID.win.paper + userID.win.scissors, draw: userID.draw.rock + userID.draw.paper + userID.draw.scissors, loss: userID.loss.rock + userID.loss.paper + userID.loss.scissors };
+				let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
+				str += ` **${user.username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${userID.win.rock + userID.draw.rock + userID.loss.rock}** :rock: / **${userID.win.paper + userID.draw.paper + userID.loss.paper}** :page_facing_up: / **${userID.win.scissors + userID.draw.scissors + userID.loss.scissors}** :scissors:`;
+
+				let idArr = arr.map(x => x[0]).filter((x) => { return stat[guild.id].rps[user.id][x] !== undefined });
+				guild.members.fetch({ user: idArr }).then((users) => {
+					for (var opp of Object.keys(userID)) {
+						if (opp == "win" || opp == "draw" || opp == "loss") continue;
+						str += `\n${user.username} - **${userID[opp].win.rock + userID[opp].win.paper + userID[opp].win.scissors}** / **${userID[opp].draw.rock + userID[opp].draw.paper + userID[opp].draw.scissors}** / **${userID[opp].loss.rock + userID[opp].loss.paper + userID[opp].loss.scissors}** - ${users.get(opp).user.username}`;
+					}
+					channel.send(new Discord.MessageEmbed({ 
+						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+						description: str,
+						footer: { text: `Listing ${user.username}'s stats.` },
+						color: "#faa61a"
+					}));
+				});
+			} else {
+				channel.send(new Discord.MessageEmbed({ 
+					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+					description: `${user.toString()} hasn't played Rock Paper Scissors yet.`,
+					color: "#faa61a"
+				}));
+			}
+		} else {
+			if (arr.length !== 0) {
+				let rank = 1;
+				let idArr = arr.map(x => x[0]);
+				guild.members.fetch({ user: idArr }).then((users) => {
+					let o = { win: arr[0][1].win.rock + arr[0][1].win.paper + arr[0][1].win.scissors, draw: arr[0][1].draw.rock + arr[0][1].draw.paper + arr[0][1].draw.scissors, loss: arr[0][1].loss.rock + arr[0][1].loss.paper + arr[0][1].loss.scissors };
+					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
+					for (var i = 1; i < arr.length; i++) {
+						let ao = { win: arr[i][1].win.rock + arr[i][1].win.paper + arr[i][1].win.scissors, draw: arr[i][1].draw.rock + arr[i][1].draw.paper + arr[i][1].draw.scissors, loss: arr[i][1].loss.rock + arr[i][1].loss.paper + arr[i][1].loss.scissors };
+						let bo = { win: arr[i - 1][1].win.rock + arr[i - 1][1].win.paper + arr[i - 1][1].win.scissors, draw: arr[i - 1][1].draw.rock + arr[i - 1][1].draw.paper + arr[i - 1][1].draw.scissors, loss: arr[i - 1][1].loss.rock + arr[i - 1][1].loss.paper + arr[i - 1][1].loss.scissors };		
+						let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+						let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+						if (x != y) rank = i + 1;
+						switch (rank) {
+							case 1:
+								str += `\n:first_place:`
+								break;
+							case 2:
+								str += `\n:second_place:`
+								break;
+							case 3:
+								str += `\n:third_place:`
+								break;
+							default:
+								str += `\n**${rank}.**`
+								break;
+						}
+						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
+					}
+					channel.send(new Discord.MessageEmbed({ 
+						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+						description: str,
+						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+						color: "#faa61a"
+					}));
+				});
+			} else {
+				channel.send(new Discord.MessageEmbed({ 
+					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
+					description: "No players to list.",
+					color: "#faa61a"
+				}));
+			}
+		}
+	}
+
+	/**
 	 * Returns the emoji corresponding to the option.
 	 * @param {Number} option - The number representing the choice.
 	 */
