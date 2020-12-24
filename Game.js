@@ -439,9 +439,7 @@ class RockPaperScissors extends Duel {
 	 * @param {Discord.User} user - (Optional) The user to list stats for.
 	 */
 	static sendLeaderboard(channel, stat, guild, user) {
-		RockPaperScissors.checkUndefined(stat, guild, "rps", user, undefined,
-			{ win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } }
-		);
+		RockPaperScissors.checkUndefined(stat, guild, "rps");
 		let arr = Object.entries(stat[guild.id].rps).sort((a, b) => {
 			let ao = { win: a[1].win.rock + a[1].win.paper + a[1].win.scissors, draw: a[1].draw.rock + a[1].draw.paper + a[1].draw.scissors, loss: a[1].loss.rock + a[1].loss.paper + a[1].loss.scissors };
 			let bo = { win: b[1].win.rock + b[1].win.paper + b[1].win.scissors, draw: b[1].draw.rock + b[1].draw.paper + b[1].draw.scissors, loss: b[1].loss.rock + b[1].loss.paper + b[1].loss.scissors };
