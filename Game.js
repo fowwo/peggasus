@@ -490,14 +490,14 @@ class RockPaperScissors extends Duel {
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: str,
 						footer: { text: `Listing ${user.username}'s stats.` },
-						color: "#faa61a"
+						color: defaultColor
 					}));
 				});
 			} else {
 				channel.send(new Discord.MessageEmbed({ 
 					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 					description: `${user.toString()} hasn't played Rock Paper Scissors yet.`,
-					color: "#faa61a"
+					color: defaultColor
 				}));
 			}
 		} else {
@@ -533,14 +533,14 @@ class RockPaperScissors extends Duel {
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: str,
 						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
-						color: "#faa61a"
+						color: defaultColor
 					}));
 				});
 			} else {
 				channel.send(new Discord.MessageEmbed({ 
 					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 					description: "No players to list.",
-					color: "#faa61a"
+					color: defaultColor
 				}));
 			}
 		}
