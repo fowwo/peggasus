@@ -370,8 +370,8 @@ class RockPaperScissors extends Duel {
 
 			this.stat[message.guild.id][this.code][this.challenger.id].draw[RockPaperScissors.optionToKey(game.challenger)]++;
 			this.stat[message.guild.id][this.code][this.opponent.id].draw[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].draw[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].draw[RockPaperScissors.optionToKey(game.challenger)]++;
+			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].draw[RockPaperScissors.optionToKey(game.challenger)]++;
+			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].draw[RockPaperScissors.optionToKey(game.opponent)]++;
 
 		} else if (game.challenger === (game.opponent + 1) % 3) {
 
@@ -397,8 +397,8 @@ class RockPaperScissors extends Duel {
 
 			this.stat[message.guild.id][this.code][this.challenger.id].win[RockPaperScissors.optionToKey(game.challenger)]++;
 			this.stat[message.guild.id][this.code][this.opponent.id].loss[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].win[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].loss[RockPaperScissors.optionToKey(game.challenger)]++;
+			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].win[RockPaperScissors.optionToKey(game.challenger)]++;
+			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].loss[RockPaperScissors.optionToKey(game.opponent)]++;
 
 		} else {
 
@@ -424,8 +424,8 @@ class RockPaperScissors extends Duel {
 
 			this.stat[message.guild.id][this.code][this.challenger.id].loss[RockPaperScissors.optionToKey(game.challenger)]++;
 			this.stat[message.guild.id][this.code][this.opponent.id].win[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].loss[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].win[RockPaperScissors.optionToKey(game.challenger)]++;
+			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].loss[RockPaperScissors.optionToKey(game.challenger)]++;
+			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].win[RockPaperScissors.optionToKey(game.opponent)]++;
 
 		}
 		this.endFunction();
