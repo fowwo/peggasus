@@ -578,6 +578,175 @@ class RockPaperScissors extends Duel {
 
 }
 
+/**
+ * Models a game of Tic-Tac-Toe.
+ */
+class TicTacToe extends Duel {
+
+	constructor(client, channel, stat, challenger, opponent) {
+		super(client, channel, stat, "Tic-Tac-Toe", "ttt", ":x: :o: :x:", challenger, opponent);
+	}
+
+	/**
+	 * Starts the game.
+	 * @param {Discord.Message} message - The message to edit, or nothing if no message was made.
+	 */
+	play(message) {
+		let players = [ this.challenger, this.opponent ];
+		let game = [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
+		let turn = 1;
+		const xPlayer = players.splice(Math.round(Math.random()), 1)[0];
+		const oPlayer = players.pop();
+
+		message.edit(new Discord.MessageEmbed({ 
+			title: this.toString(),
+			description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+			footer: { text: `${xPlayer.username}'s turn.` },
+			color: pendingColor
+		}));
+		message.react("1️⃣");
+		message.react("2️⃣");
+		message.react("3️⃣");
+		message.react("4️⃣");
+		message.react("5️⃣");
+		message.react("6️⃣");
+		message.react("7️⃣");
+		message.react("8️⃣");
+		message.react("9️⃣");
+		
+		let gameCollector = message.createReactionCollector((reaction, user) => 
+			((user.id === xPlayer.id && turn === 1) || (user.id === oPlayer.id && turn === 2)) && TicTacToe.emojiToIndex(reaction.emoji) !== -1
+		).on("collect", (reaction, user) => {
+			let i = TicTacToe.emojiToIndex(reaction.emoji);
+			if (game[i] === 0) {
+				game[i] = turn;
+				turn = turn % 2 + 1;
+				let win = TicTacToe.determineOutcome(game);
+				if (win !== -1) {
+					this.checkUndefined();
+					if (win === 1) {
+						// X wins.
+						message.edit(new Discord.MessageEmbed({ 
+							title: this.toString(),
+							description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+							color: successColor,
+							footer: { text: `${xPlayer.username} wins!` }
+						}));
+			
+						this.stat[message.guild.id].ttt[xPlayer.id].win.x++;
+						this.stat[message.guild.id].ttt[oPlayer.id].loss.o++;
+						this.stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].win.x++;
+						this.stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].loss.o++;
+					} else if (win === 2) {
+						// O wins.
+						message.edit(new Discord.MessageEmbed({ 
+							title: this.toString(),
+							description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+							color: successColor,
+							footer: { text: `${oPlayer.username} wins!` }
+						}));
+
+						this.stat[message.guild.id].ttt[xPlayer.id].loss.x++;
+						this.stat[message.guild.id].ttt[oPlayer.id].win.o++;
+						this.stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].loss.x++;
+						this.stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].win.o++;
+					} else {
+						// The game is a draw.
+						message.edit(new Discord.MessageEmbed({ 
+							title: this.toString(),
+							description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+							color: successColor,
+							footer: { text: "The game is a draw!" }
+						}));
+
+						this.stat[message.guild.id].ttt[xPlayer.id].draw.x++;
+						this.stat[message.guild.id].ttt[oPlayer.id].draw.o++;
+						this.stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].draw.x++;
+						this.stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].draw.o++;
+					}
+					this.endFunction();
+					gameCollector.stop();
+				} else {
+					message.edit(new Discord.MessageEmbed({ 
+						title: this.toString(),
+						description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+						color: pendingColor,
+						footer: { text: `${turn === 1 ? xPlayer.username : oPlayer.username}'s turn.` }
+					}));
+				}
+			}
+		});
+	}
+
+	/**
+	 * Checks for undefined stats and creates data if necessary.
+	 */
+	checkUndefined() {
+		Duel.checkUndefined(this.stat, this.channel.guild, this.code, this.challenger, this.opponent,
+			{ win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } }
+		);
+	}
+
+	/**
+	 * Draws the board from the given game data.
+	 * @param {Number[]} game - The game data.
+	 * @param {Discord.User} xPlayer
+	 * @param {Discord.User} oPlayer
+	 */
+	static makeBoard(game, xPlayer, oPlayer) {
+		return `\`\`\`elm\n${game[0] === 0 ? '1' : game[0] === 1 ? 'X' : 'O'} │ ${game[1] === 0 ? '2' : game[1] === 1 ? 'X' : 'O'} │ ${game[2] === 0 ? '3' : game[2] === 1 ? 'X' : 'O'}\n──┼───┼──    X - ${xPlayer.username}   \n${game[3] === 0 ? '4' : game[3] === 1 ? 'X' : 'O'} │ ${game[4] === 0 ? '5' : game[4] === 1 ? 'X' : 'O'} │ ${game[5] === 0 ? '6' : game[5] === 1 ? 'X' : 'O'}\n──┼───┼──    O - ${oPlayer.username}   \n${game[6] === 0 ? '7' : game[6] === 1 ? 'X' : 'O'} │ ${game[7] === 0 ? '8' : game[7] === 1 ? 'X' : 'O'} │ ${game[8] === 0 ? '9' : game[8] === 1 ? 'X' : 'O'}\`\`\``;
+	}
+
+	/**
+	 * Returns the index corresponding to an emoji.
+	 * @param {Discord.Emoji} emoji - The emoji.
+	 */
+	static emojiToIndex(emoji) {
+		switch (emoji.name) {
+			case "1️⃣":
+				return 0;
+			case "2️⃣":
+				return 1;
+			case "3️⃣":
+				return 2;
+			case "4️⃣":
+				return 3;
+			case "5️⃣":
+				return 4;
+			case "6️⃣":
+				return 5;
+			case "7️⃣":
+				return 6;
+			case "8️⃣":
+				return 7;
+			case "9️⃣":
+				return 8;
+			default:
+				return -1;
+		}
+	}
+
+	/**
+	 * Checks if the game has a winner.
+	 * @param {Number[]} game - The game data.
+	 */
+	static determineOutcome(game) {
+		if ((game[0] !== 0 && game[0] === game[1] && game[1] === game[2])) return game[0]; // Top Row
+		if ((game[3] !== 0 && game[3] === game[4] && game[4] === game[5])) return game[3]; // Middle Row
+		if ((game[6] !== 0 && game[6] === game[7] && game[7] === game[8])) return game[6]; // Bottom Row
+		if ((game[0] !== 0 && game[0] === game[3] && game[3] === game[6])) return game[0]; // Left Column
+		if ((game[1] !== 0 && game[1] === game[4] && game[4] === game[7])) return game[1]; // Middle Column
+		if ((game[2] !== 0 && game[2] === game[5] && game[5] === game[8])) return game[2]; // Right Column
+		if ((game[0] !== 0 && game[0] === game[4] && game[4] === game[8])) return game[0]; // Down-Right
+		if ((game[2] !== 0 && game[2] === game[4] && game[4] === game[6])) return game[2]; // Down-Left
+
+		if (game.indexOf(0) === -1) return 0; // The game is a draw.
+		return -1; // The game is still in progress.
+	}
+
+}
+
 module.exports = {
-	RockPaperScissors: RockPaperScissors
+	RockPaperScissors: RockPaperScissors,
+	TicTacToe: TicTacToe
 }
