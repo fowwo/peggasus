@@ -26,29 +26,35 @@ client.on('message', (msg) => {
 				configCommand(args);
 				break;
 			case "rps":
-				switch (args[0].toLowerCase()) {
-					case "l":
-					case "list":
-					case "leaderboard":
-					case "score":
-					case "scores":
-					case "stat":
-					case "stats":
-						Game.RockPaperScissors.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
-						return;
+				if (args.length > 0) {
+					switch (args[0].toLowerCase()) {
+						case "l":
+						case "list":
+						case "leaderboard":
+						case "score":
+						case "scores":
+						case "stat":
+						case "stats":
+							Game.RockPaperScissors.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
+							return;
+					}
 				}
-				game = new Game.RockPaperScissors(client, msg.channel, stat, msg.author, mentions[0]);
-				game.onEnd(saveStats);
-				game.challenge();
-				msg.delete();
+				if (mentions.length !== 0) {
+					game = new Game.RockPaperScissors(client, msg.channel, stat, msg.author, mentions[0]);
+					game.onEnd(saveStats);
+					game.challenge();
+					msg.delete();
+				}
 				break;
 			case "tic-tac-toe":
 			case "tictactoe":
 			case "ttt":
-				game = new Game.TicTacToe(client, msg.channel, stat, msg.author, mentions[0]);
-				game.onEnd(saveStats);
-				game.challenge();
-				msg.delete();
+				if (mentions.length > 0) {
+					game = new Game.TicTacToe(client, msg.channel, stat, msg.author, mentions[0]);
+					game.onEnd(saveStats);
+					game.challenge();
+					msg.delete();
+				}
 				break;
 			default:
 				// Invalid command
