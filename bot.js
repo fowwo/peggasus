@@ -49,6 +49,19 @@ client.on('message', (msg) => {
 			case "tic-tac-toe":
 			case "tictactoe":
 			case "ttt":
+				if (args.length > 0) {
+					switch (args[0].toLowerCase()) {
+						case "l":
+						case "list":
+						case "leaderboard":
+						case "score":
+						case "scores":
+						case "stat":
+						case "stats":
+							Game.TicTacToe.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
+							return;
+					}
+				}
 				if (mentions.length > 0) {
 					game = new Game.TicTacToe(client, msg.channel, stat, msg.author, mentions[0]);
 					game.onEnd(saveStats);

@@ -432,7 +432,7 @@ class RockPaperScissors extends Duel {
 	}
 
 	/**
-	 * Makes a leaderboard for Rock Paper Scissors.
+	 * Makes a leaderboard.
 	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
 	 * @param {{}} stat - The object containing game stats.
 	 * @param {Discord.Guild} guild - The guild to list stats for.
@@ -685,6 +685,121 @@ class TicTacToe extends Duel {
 		Duel.checkUndefined(this.stat, this.channel.guild, this.code, this.challenger, this.opponent,
 			{ win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } }
 		);
+	}
+
+	/**
+	 * Makes a leaderboard.
+	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
+	 * @param {{}} stat - The object containing game stats.
+	 * @param {Discord.Guild} guild - The guild to list stats for.
+	 * @param {Discord.User} user - (Optional) The user to list stats for.
+	 */
+	static sendLeaderboard(channel, stat, guild, user) {
+		TicTacToe.checkUndefined(stat, guild, "ttt");
+		let arr = Object.entries(stat[guild.id].ttt).sort((a, b) => {
+			let ao = { win: a[1].win.x + a[1].win.o, draw: a[1].draw.x + a[1].draw.o, loss: a[1].loss.x + a[1].loss.o };
+			let bo = { win: b[1].win.x + b[1].win.o, draw: b[1].draw.x + b[1].draw.o, loss: b[1].loss.x + b[1].loss.o };
+			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+			if (x < y) return 1;
+			else if (x > y) return -1;
+			else if (ao.win < bo.win) return 1;
+			else if (ao.win > bo.win) return -1;
+			return 0;
+		});
+		if (user !== undefined) {
+			if (stat[guild.id].ttt[user.id] !== undefined) {
+				let rank = 0;
+				for (rank = 0; rank < arr.length; rank++) {
+					if (arr[rank][0] == user.id) {
+						rank++;
+						break;
+					}
+				}
+				let userID = stat[guild.id].ttt[user.id];
+				let str = "";
+				switch (rank) {
+					case 1:
+						str = `\n:first_place:`;
+						break;
+					case 2:
+						str = `\n:second_place:`;
+						break;
+					case 3:
+						str = `\n:third_place:`;
+						break;
+					default:
+						str = `\n**${rank}.**`;
+						break;
+				}
+				let o = { win: userID.win.x + userID.win.o, draw: userID.draw.x + userID.draw.o, loss: userID.loss.x + userID.loss.o };
+				let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
+				str += ` **${user.username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${userID.win.x + userID.draw.x + userID.loss.x}** :x: / **${userID.win.o + userID.draw.o + userID.loss.o}** :o:`;
+
+				let idArr = arr.map(x => x[0]).filter((x) => { return stat[guild.id].ttt[user.id][x] !== undefined });
+				guild.members.fetch({ user: idArr }).then((users) => {
+					for (var opp of Object.keys(userID)) {
+						if (opp == "win" || opp == "draw" || opp == "loss") continue;
+						str += `\n${user.username} - **${userID[opp].win.x + userID[opp].win.o}** / **${userID[opp].draw.x + userID[opp].draw.o}** / **${userID[opp].loss.x + userID[opp].loss.o}** - ${users.get(opp).user.username}`;
+					}
+					channel.send(new Discord.MessageEmbed({ 
+						title: ":x: :o: :x: Tic-Tac-Toe",
+						description: str,
+						footer: { text: `Listing ${user.username}'s stats.` },
+						color: defaultColor
+					}));
+				});
+			} else {
+				channel.send(new Discord.MessageEmbed({ 
+					title: ":x: :o: :x: Tic-Tac-Toe",
+					description: `${user.toString()} hasn't played Tic-Tac-Toe yet.`,
+					color: defaultColor
+				}));
+			}
+		} else {
+			if (arr.length !== 0) {
+				let rank = 1;
+				let idArr = arr.map(x => x[0]);
+				guild.members.fetch({ user: idArr }).then((users) => {
+					let o = { win: arr[0][1].win.x + arr[0][1].win.o, draw: arr[0][1].draw.x + arr[0][1].draw.o, loss: arr[0][1].loss.x + arr[0][1].loss.o };
+					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
+					for (var i = 1; i < arr.length; i++) {
+						let ao = { win: arr[i][1].win.x + arr[i][1].win.o, draw: arr[i][1].draw.x + arr[i][1].draw.o, loss: arr[i][1].loss.x + arr[i][1].loss.o };
+						let bo = { win: arr[i - 1][1].win.x + arr[i - 1][1].win.o, draw: arr[i - 1][1].draw.x + arr[i - 1][1].draw.o, loss: arr[i - 1][1].loss.x + arr[i - 1][1].loss.o };		
+						let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+						let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+						if (x != y) rank = i + 1;
+						switch (rank) {
+							case 1:
+								str += `\n:first_place:`
+								break;
+							case 2:
+								str += `\n:second_place:`
+								break;
+							case 3:
+								str += `\n:third_place:`
+								break;
+							default:
+								str += `\n**${rank}.**`
+								break;
+						}
+						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
+					}
+					channel.send(new Discord.MessageEmbed({ 
+						title: ":x: :o: :x: Tic-Tac-Toe",
+						description: str,
+						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+						color: defaultColor
+					}));
+				});
+			} else {
+				channel.send(new Discord.MessageEmbed({ 
+					title: ":x: :o: :x: Tic-Tac-Toe",
+					description: "No players to list.",
+					color: defaultColor
+				}));
+			}
+		}
 	}
 
 	/**
