@@ -69,6 +69,18 @@ client.on('message', (msg) => {
 					msg.delete();
 				}
 				break;
+			case "connect-four":
+			case "connectfour":
+			case "connect-4":
+			case "connect4":
+			case "c4":
+				if (mentions.length > 0) {
+					game = new Game.ConnectFour(client, msg.channel, stat, msg.author, mentions[0]);
+					game.onEnd(saveStats);
+					game.challenge();
+					msg.delete();
+				}
+				break;
 			default:
 				// Invalid command
 				break;

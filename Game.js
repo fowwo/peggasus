@@ -861,7 +861,212 @@ class TicTacToe extends Duel {
 
 }
 
+/**
+ * Models a game of Connect Four.
+ */
+class ConnectFour extends Duel {
+	
+	constructor(client, channel, stat, challenger, opponent) {
+		super(client, channel, stat, "Connect Four", "c4", ":red_circle: :yellow_circle: :red_circle:", challenger, opponent);
+	}
+
+	/**
+	 * Starts the game.
+	 * @param {Discord.Message} message - The message to edit, or nothing if no message was made.
+	 */
+	play(message) {
+		let players = [ this.challenger, this.opponent ];
+		let game = [ [ 0, 0, 0, 0, 0, 0, 0 ],
+					 [ 0, 0, 0, 0, 0, 0, 0 ],
+					 [ 0, 0, 0, 0, 0, 0, 0 ],
+					 [ 0, 0, 0, 0, 0, 0, 0 ],
+					 [ 0, 0, 0, 0, 0, 0, 0 ],
+					 [ 0, 0, 0, 0, 0, 0, 0 ] ];
+		let turn = 1;
+		const redPlayer = players.splice(Math.round(Math.random()), 1)[0];
+		const yellowPlayer = players.pop();
+
+		message.edit(new Discord.MessageEmbed({ 
+			title: this.toString(),
+			description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
+			footer: { text: `${redPlayer.username}'s turn.` },
+			color: pendingColor
+		}));
+		message.react("1️⃣");
+		message.react("2️⃣");
+		message.react("3️⃣");
+		message.react("4️⃣");
+		message.react("5️⃣");
+		message.react("6️⃣");
+		message.react("7️⃣");
+		
+		// The ReactionCollector filter does not apply to removing reactions and was causing weird problems,
+		// so I have decided not to use them and instead "filter" them from within the events.
+		let gameCollector = message.createReactionCollector((reaction, user) => { return true; },
+			{ dispose: true }
+		).on("collect", (reaction, user) => {
+			if (isPlayerTurn(reaction, user, turn)) playMove(this, reaction);
+		}).on("remove", (reaction, user) => {
+			if (isPlayerTurn(reaction, user, turn)) playMove(this, reaction);
+		});
+
+		function isPlayerTurn(reaction, user, turn) {
+			return ((user.id === redPlayer.id && turn === 1) || (user.id === yellowPlayer.id && turn === 2)) && ConnectFour.emojiToIndex(reaction.emoji) !== -1;
+		}
+		function playMove(self, reaction) {
+			let i = ConnectFour.emojiToIndex(reaction.emoji);
+			let ri = -1;
+			for (var r = 0; r < 6; r++) {
+				if (game[r][i] === 0) {
+					ri = r;
+					break;
+				}
+			}
+			if (ri !== -1) {
+				game[ri][i] = turn;
+				turn = turn % 2 + 1;
+				let win = ConnectFour.determineOutcome(game, ri, i);
+				if (win !== -1) {
+					self.checkUndefined();
+					if (win === 1) {
+						// Red wins.
+						message.edit(new Discord.MessageEmbed({ 
+							title: self.toString(),
+							description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
+							color: successColor,
+							footer: { text: `${redPlayer.username} wins!` }
+						}));
+			
+						self.stat[message.guild.id].c4[redPlayer.id].win.red++;
+						self.stat[message.guild.id].c4[yellowPlayer.id].loss.yellow++;
+						self.stat[message.guild.id].c4[redPlayer.id][yellowPlayer.id].win.red++;
+						self.stat[message.guild.id].c4[yellowPlayer.id][redPlayer.id].loss.yellow++;
+					} else if (win === 2) {
+						// Yellow wins.
+						message.edit(new Discord.MessageEmbed({ 
+							title: self.toString(),
+							description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
+							color: successColor,
+							footer: { text: `${yellowPlayer.username} wins!` }
+						}));
+
+						self.stat[message.guild.id].c4[redPlayer.id].loss.red++;
+						self.stat[message.guild.id].c4[yellowPlayer.id].win.yellow++;
+						self.stat[message.guild.id].c4[redPlayer.id][yellowPlayer.id].loss.red++;
+						self.stat[message.guild.id].c4[yellowPlayer.id][redPlayer.id].win.yellow++;
+					} else {
+						// The game is a draw.
+						message.edit(new Discord.MessageEmbed({ 
+							title: self.toString(),
+							description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
+							color: successColor,
+							footer: { text: "The game is a draw!" }
+						}));
+
+						self.stat[message.guild.id].c4[redPlayer.id].draw.red++;
+						self.stat[message.guild.id].c4[yellowPlayer.id].draw.yellow++;
+						self.stat[message.guild.id].c4[redPlayer.id][yellowPlayer.id].draw.red++;
+						self.stat[message.guild.id].c4[yellowPlayer.id][redPlayer.id].draw.yellow++;
+					}
+					self.endFunction();
+					gameCollector.stop();
+				} else {
+					message.edit(new Discord.MessageEmbed({ 
+						title: self.toString(),
+						description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
+						color: pendingColor,
+						footer: { text: `${turn === 1 ? redPlayer.username : yellowPlayer.username}'s turn.` }
+					}));
+				}
+			}
+		}
+	}
+
+	/**
+	 * Checks for undefined stats and creates data if necessary.
+	 */
+	checkUndefined() {
+		Duel.checkUndefined(this.stat, this.channel.guild, this.code, this.challenger, this.opponent,
+			{ win: { red: 0, yellow: 0 }, draw: { red: 0, yellow: 0 }, loss: { red: 0, yellow: 0 } }
+		);
+	}
+
+	/**
+	 * Draws the board from the given game data.
+	 * @param {Number[]} game - The game data.
+	 * @param {Discord.User} redPlayer
+	 * @param {Discord.User} yellowPlayer
+	 */
+	static makeBoard(game, redPlayer, yellowPlayer) {
+		let str = `${redPlayer.toString()} :red_circle: vs. :yellow_circle: ${yellowPlayer.toString()}\n`;
+		for (var r = 5; r >= 0; r--) {
+			str += `\n${game[r][0] === 1 ? ":red_circle:" : game[r][0] === 2 ? ":yellow_circle:" : ":black_circle:"}`;
+			for (var c = 1; c < 7; c++) {
+				str += ` ${game[r][c] === 1 ? ":red_circle:" : game[r][c] === 2 ? ":yellow_circle:" : ":black_circle:"}`;
+			}
+		}
+		return str;
+	}
+
+	/**
+	 * Returns the index corresponding to an emoji.
+	 * @param {Discord.Emoji} emoji - The emoji.
+	 */
+	static emojiToIndex(emoji) {
+		switch (emoji.name) {
+			case "1️⃣":
+				return 0;
+			case "2️⃣":
+				return 1;
+			case "3️⃣":
+				return 2;
+			case "4️⃣":
+				return 3;
+			case "5️⃣":
+				return 4;
+			case "6️⃣":
+				return 5;
+			case "7️⃣":
+				return 6;
+			default:
+				return -1;
+		}
+	}
+
+	/**
+	 * Checks if the game has a winner.
+	 * @param {Number[][]} game - The game data.
+	 * @param {Number} r - The index of the row played.
+	 * @param {Number} c - The index of the column played.
+	 */
+	static determineOutcome(game, r, c) {
+		let v = game[r][c];
+		if ((          r <= 2                     && game[r + 1][c] === v     && game[r + 2][c] === v     && game[r + 3][c] === v) ||     // Vertical 1 (Up)
+			(r >= 1 && r <= 3                     && game[r + 1][c] === v     && game[r + 2][c] === v     && game[r - 1][c] === v) ||     // Vertical 2
+			(r >= 2 && r <= 4                     && game[r + 1][c] === v     && game[r - 2][c] === v     && game[r - 1][c] === v) ||     // Vertical 3
+			(r >= 3                               && game[r - 3][c] === v     && game[r - 2][c] === v     && game[r - 1][c] === v) ||     // Vertical 4 (Down)
+			(                              c <= 3 && game[r][c + 1] === v     && game[r][c + 2] === v     && game[r][c + 3] === v) ||     // Horizontal 1 (Right)
+			(                    c >= 1 && c <= 4 && game[r][c + 1] === v     && game[r][c + 2] === v     && game[r][c - 1] === v) ||     // Horizontal 2
+			(                    c >= 2 && c <= 5 && game[r][c + 1] === v     && game[r][c - 2] === v     && game[r][c - 1] === v) ||     // Horizontal 3
+			(                    c >= 3           && game[r][c - 3] === v     && game[r][c - 2] === v     && game[r][c - 1] === v) ||     // Horizontal 4 (Left)
+			(          r <= 2           && c <= 3 && game[r + 1][c + 1] === v && game[r + 2][c + 2] === v && game[r + 3][c + 3] === v) || // ⟋ 1 (Up-Right)
+			(r >= 1 && r <= 3 && c >= 1 && c <= 4 && game[r + 1][c + 1] === v && game[r + 2][c + 2] === v && game[r - 1][c - 1] === v) || // ⟋ 2
+			(r >= 2 && r <= 4 && c >= 2 && c <= 5 && game[r + 1][c + 1] === v && game[r - 2][c - 2] === v && game[r - 1][c - 1] === v) || // ⟋ 3
+			(r >= 3           && c >= 3           && game[r - 3][c - 3] === v && game[r - 2][c - 2] === v && game[r - 1][c - 1] === v) || // ⟋ 4 (Down-Left)
+			(r >= 3                     && c <= 3 && game[r - 1][c + 1] === v && game[r - 2][c + 2] === v && game[r - 3][c + 3] === v) || // ⟍ 1 (Down-Right)
+			(r >= 2 && r <= 4 && c >= 1 && c <= 4 && game[r - 1][c + 1] === v && game[r - 2][c + 2] === v && game[r + 1][c - 1] === v) || // ⟍ 2
+			(r >= 1 && r <= 3 && c >= 2 && c <= 5 && game[r - 1][c + 1] === v && game[r + 2][c - 2] === v && game[r + 1][c - 1] === v) || // ⟍ 3
+			(          r <= 2 && c >= 3           && game[r + 3][c - 3] === v && game[r + 2][c - 2] === v && game[r + 1][c - 1] === v))   // ⟍ 4 (Up-Left)
+			return game[r][c];
+
+		if (game[5].indexOf(0) === -1) return 0; // The game is a draw.
+		return -1; // The game is still in progress.
+	}
+
+}
+
 module.exports = {
 	RockPaperScissors: RockPaperScissors,
-	TicTacToe: TicTacToe
+	TicTacToe: TicTacToe,
+	ConnectFour: ConnectFour
 }
