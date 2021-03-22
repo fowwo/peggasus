@@ -179,6 +179,134 @@ class Duel extends Game {
 }
 
 /**
+ * Models an abstract game for more than two players.
+ */
+class Group extends Game {
+
+	/**
+	 * @param {Discord.Client} client - The client.
+	 * @param {Discord.TextChannel} channel - The channel where the game is created.
+	 * @param {{}} stat - The object containing game stats.
+	 * @param {String} title - The name of the game.
+	 * @param {String} code - The shorthand name of the game.
+	 * @param {String} prefix - The game title's prefix.
+	 * @param {Discord.User} host - The user hosting the game.
+	 * @param {Number} maxPlayers - The maximum number of users who can play the game.
+	 * @param {Boolean} allowBotOpponent - Whether or not a user can challenge the bot.
+	 */
+	constructor(client, channel, stat, title, code, prefix, host, maxPlayers, allowBotOpponent = false) {
+		if (new.target === Group) throw new TypeError("Cannot create instance of an abstract group game.");
+		super(client, channel, stat, title, code, prefix);
+		this.host = host;
+		this.maxPlayers = maxPlayers;
+		this.players = [ host ];
+		this.allowBotOpponent = allowBotOpponent;
+
+		// Required methods
+		if (this.play === undefined) throw new Error(`${new.target.name} is missing the 'play(message)' method.`);
+	}
+
+	/**
+	 * Hosts a game.
+	 */
+	hostLobby() {
+		if (this.host.bot) {
+			this.channel.send(new Discord.MessageEmbed({ 
+				title: this.toString(),
+				description: `:no_entry_sign: Bots can't host games!`,
+				color: failColor
+			})).then((message) => { setTimeout(() => { message.delete(); }, badMessageTimeout); });
+		} else {
+			let e = new Discord.MessageEmbed({ 
+				title: this.toString(),
+				description: `:game_die: ${this.host.toString()} is hosting a game of ${this.title}!\n\n${this.makePlayerList()}`,
+				footer: { text: `${this.players.length} / ${this.maxPlayers} players` },
+				color: defaultColor
+			});
+			this.channel.send(e).then((message) => {
+				message.react("⏫");
+				message.react("✅");
+				message.react("🚫");
+				let collector = message.createReactionCollector((reaction, user) => 
+					(user.id !== this.host.id && !user.bot && reaction.emoji.name === "⏫") ||
+					(user.id === this.host.id && (reaction.emoji.name === "✅" || reaction.emoji.name === "🚫")),
+					{ dispose: true }
+				).on("collect", (reaction, user) => {
+					if (reaction.emoji.name === "⏫") {
+	
+						// User joined
+						if (this.players.length < this.maxPlayers) this.players.push(user);
+						e.setDescription(`:game_die: ${this.host.toString()} is hosting a game of ${this.title}!\n\n${this.makePlayerList()}`);
+						e.setFooter(`${this.players.length} / ${this.maxPlayers} players`);
+						message.edit(e);
+	
+					} else if (reaction.emoji.name === "✅") {
+	
+						// Start game
+						collector.stop();
+						message.reactions.removeAll();
+						this.play(message);
+	
+					} else {
+	
+						// Cancel game
+						collector.stop();
+						message.delete();
+	
+					}
+				}).on("remove", (reaction, user) => {
+					if (reaction.emoji.name === "⏫") {
+
+						// User left
+						this.players = this.players.filter((player) => { return player.id !== user.id; });
+						e.setDescription(`:game_die: ${this.host.toString()} is hosting a game of ${this.title}!\n\n${this.makePlayerList()}`);
+						e.setFooter(`${this.players.length} / ${this.maxPlayers} players`);
+						message.edit(e);
+
+					}
+				});
+			});
+		}
+	}
+
+	/**
+	 * Returns a numbered list of players.
+	 */
+	makePlayerList() {
+		let str = `**1.** ${this.players[0].toString()}`;
+		let i = 1;
+		for (; i < this.players.length; i++) {
+			str += `\n**${i + 1}.** ${this.players[i].toString()}`;
+		}
+		for (; i < this.maxPlayers; i++) {
+			str += `\n**${i + 1}.** ---`;
+		}
+		return str;
+	}
+
+	/**
+	 * Checks for undefined stats and creates data if necessary.
+	 * @param {{}} stat - The object containing game stats.
+	 * @param {Discord.Guild} guild - The guild in which the game is being played.
+	 * @param {String} code - The shorthand name of the game.
+	 * @param {Discord.User} user1
+	 * @param {Discord.User} user2
+	 * @param {} defaultData - The data to create for undefined stats.
+	 */
+	static checkUndefined(stat, guild, code, user1, user2, defaultData) {
+		if (stat[guild.id] === undefined) stat[guild.id] = {};
+		if (stat[guild.id][code] === undefined) stat[guild.id][code] = {};
+		if (user1 !== undefined) if (stat[guild.id][code][user1.id] === undefined) stat[guild.id][code][user1.id] = JSON.parse(JSON.stringify(defaultData));
+		if (user2 !== undefined) if (stat[guild.id][code][user2.id] === undefined) stat[guild.id][code][user2.id] = JSON.parse(JSON.stringify(defaultData));
+		if (user1 !== undefined && user2 !== undefined) {
+			if (stat[guild.id][code][user1.id][user2.id] === undefined) stat[guild.id][code][user1.id][user2.id] = JSON.parse(JSON.stringify(defaultData));
+			if (stat[guild.id][code][user2.id][user1.id] === undefined) stat[guild.id][code][user2.id][user1.id] = JSON.parse(JSON.stringify(defaultData));
+		}
+	}
+
+}
+
+/**
  * Models a game of Rock Paper Scissors.
  */
 class RockPaperScissors extends Duel {
