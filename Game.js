@@ -992,6 +992,121 @@ class ConnectFour extends Duel {
 	}
 
 	/**
+	 * Makes a leaderboard.
+	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
+	 * @param {{}} stat - The object containing game stats.
+	 * @param {Discord.Guild} guild - The guild to list stats for.
+	 * @param {Discord.User} user - (Optional) The user to list stats for.
+	 */
+	static sendLeaderboard(channel, stat, guild, user) {
+		ConnectFour.checkUndefined(stat, guild, "c4");
+		let arr = Object.entries(stat[guild.id].c4).sort((a, b) => {
+			let ao = { win: a[1].win.red + a[1].win.yellow, draw: a[1].draw.red + a[1].draw.yellow, loss: a[1].loss.red + a[1].loss.yellow };
+			let bo = { win: b[1].win.red + b[1].win.yellow, draw: b[1].draw.red + b[1].draw.yellow, loss: b[1].loss.red + b[1].loss.yellow };
+			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+			if (x < y) return 1;
+			else if (x > y) return -1;
+			else if (ao.win < bo.win) return 1;
+			else if (ao.win > bo.win) return -1;
+			return 0;
+		});
+		if (user !== undefined) {
+			if (stat[guild.id].c4[user.id] !== undefined) {
+				let rank = 0;
+				for (rank = 0; rank < arr.length; rank++) {
+					if (arr[rank][0] == user.id) {
+						rank++;
+						break;
+					}
+				}
+				let userID = stat[guild.id].c4[user.id];
+				let str = "";
+				switch (rank) {
+					case 1:
+						str = `\n:first_place:`;
+						break;
+					case 2:
+						str = `\n:second_place:`;
+						break;
+					case 3:
+						str = `\n:third_place:`;
+						break;
+					default:
+						str = `\n**${rank}.**`;
+						break;
+				}
+				let o = { win: userID.win.red + userID.win.yellow, draw: userID.draw.red + userID.draw.yellow, loss: userID.loss.red + userID.loss.yellow };
+				let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
+				str += ` **${user.username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${userID.win.red + userID.draw.red + userID.loss.red}** :x: / **${userID.win.yellow + userID.draw.yellow + userID.loss.yellow}** :o:`;
+
+				let idArr = arr.map(x => x[0]).filter((x) => { return stat[guild.id].c4[user.id][x] !== undefined });
+				guild.members.fetch({ user: idArr }).then((users) => {
+					for (var opp of Object.keys(userID)) {
+						if (opp == "win" || opp == "draw" || opp == "loss") continue;
+						str += `\n${user.username} - **${userID[opp].win.red + userID[opp].win.yellow}** / **${userID[opp].draw.red + userID[opp].draw.yellow}** / **${userID[opp].loss.red + userID[opp].loss.yellow}** - ${users.get(opp).user.username}`;
+					}
+					channel.send(new Discord.MessageEmbed({ 
+						title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
+						description: str,
+						footer: { text: `Listing ${user.username}'s stats.` },
+						color: defaultColor
+					}));
+				});
+			} else {
+				channel.send(new Discord.MessageEmbed({ 
+					title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
+					description: `${user.toString()} hasn't played Connect Four yet.`,
+					color: defaultColor
+				}));
+			}
+		} else {
+			if (arr.length !== 0) {
+				let rank = 1;
+				let idArr = arr.map(x => x[0]);
+				guild.members.fetch({ user: idArr }).then((users) => {
+					let o = { win: arr[0][1].win.red + arr[0][1].win.yellow, draw: arr[0][1].draw.red + arr[0][1].draw.yellow, loss: arr[0][1].loss.red + arr[0][1].loss.yellow };
+					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
+					for (var i = 1; i < arr.length; i++) {
+						let ao = { win: arr[i][1].win.red + arr[i][1].win.yellow, draw: arr[i][1].draw.red + arr[i][1].draw.yellow, loss: arr[i][1].loss.red + arr[i][1].loss.yellow };
+						let bo = { win: arr[i - 1][1].win.red + arr[i - 1][1].win.yellow, draw: arr[i - 1][1].draw.red + arr[i - 1][1].draw.yellow, loss: arr[i - 1][1].loss.red + arr[i - 1][1].loss.yellow };		
+						let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+						let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+						if (x != y) rank = i + 1;
+						switch (rank) {
+							case 1:
+								str += `\n:first_place:`
+								break;
+							case 2:
+								str += `\n:second_place:`
+								break;
+							case 3:
+								str += `\n:third_place:`
+								break;
+							default:
+								str += `\n**${rank}.**`
+								break;
+						}
+						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
+					}
+					channel.send(new Discord.MessageEmbed({ 
+						title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
+						description: str,
+						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+						color: defaultColor
+					}));
+				});
+			} else {
+				channel.send(new Discord.MessageEmbed({ 
+					title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
+					description: "No players to list.",
+					color: defaultColor
+				}));
+			}
+		}
+	}
+
+	/**
 	 * Draws the board from the given game data.
 	 * @param {Number[]} game - The game data.
 	 * @param {Discord.User} redPlayer

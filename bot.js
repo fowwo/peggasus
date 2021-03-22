@@ -74,6 +74,19 @@ client.on('message', (msg) => {
 			case "connect-4":
 			case "connect4":
 			case "c4":
+				if (args.length > 0) {
+					switch (args[0].toLowerCase()) {
+						case "l":
+						case "list":
+						case "leaderboard":
+						case "score":
+						case "scores":
+						case "stat":
+						case "stats":
+							Game.ConnectFour.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
+							return;
+					}
+				}
 				if (mentions.length > 0) {
 					game = new Game.ConnectFour(client, msg.channel, stat, msg.author, mentions[0]);
 					game.onEnd(saveStats);
