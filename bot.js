@@ -36,7 +36,8 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							game.sendLeaderboard();
+							if (mentions[0]) game.sendPersonalStats(mentions[0])
+							else game.sendLeaderboard();
 							return;
 					}
 				}
@@ -59,7 +60,8 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							game.sendLeaderboard();
+							if (mentions[0]) game.sendPersonalStats(mentions[0])
+							else game.sendLeaderboard();
 							return;
 					}
 				}
@@ -84,7 +86,8 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							game.sendLeaderboard();
+							if (mentions[0]) game.sendPersonalStats(mentions[0])
+							else game.sendLeaderboard();
 							return;
 					}
 				}

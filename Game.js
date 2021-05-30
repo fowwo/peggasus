@@ -259,6 +259,89 @@ class Duel extends Game {
 		}
 	}
 
+	/**
+	 * Shows personal stats.
+	 * @param {Discord.User} user - The user to show stats for.
+	 * @param {String[]} keys - The list of keys or game choices.
+	 * @param {String[]} emojis - The list of emojis for each key.
+	 */
+	sendPersonalStats(user, keys, emojis) {
+		super.checkUndefined();
+		let arr = Object.entries(this.stat[this.channel.guild.id][this.code]).sort((a, b) => {
+			let ao = { win: 0, draw: 0, loss: 0 };
+			let bo = { win: 0, draw: 0, loss: 0 };
+			Object.values(a[1].win).forEach(value => ao.win += value);
+			Object.values(a[1].draw).forEach(value => ao.draw += value);
+			Object.values(a[1].loss).forEach(value => ao.loss += value);
+			Object.values(b[1].win).forEach(value => bo.win += value);
+			Object.values(b[1].draw).forEach(value => bo.draw += value);
+			Object.values(b[1].loss).forEach(value => bo.loss += value);
+			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+			if (x < y) return 1;
+			else if (x > y) return -1;
+			else if (ao.win < bo.win) return 1;
+			else if (ao.win > bo.win) return -1;
+			return 0;
+		});
+		if (this.stat[this.channel.guild.id][this.code][user.id] !== undefined) {
+			let rank = 0;
+			for (rank = 0; rank < arr.length; rank++) {
+				if (arr[rank][0] == user.id) {
+					rank++;
+					break;
+				}
+			}
+			let userID = this.stat[this.channel.guild.id][this.code][user.id];
+			let str = "";
+			switch (rank) {
+				case 1:
+					str = `\n:first_place:`;
+					break;
+				case 2:
+					str = `\n:second_place:`;
+					break;
+				case 3:
+					str = `\n:third_place:`;
+					break;
+				default:
+					str = `\n**${rank}.**`;
+					break;
+			}
+			let o = { win: 0, draw: 0, loss: 0 };
+			Object.values(userID.win).forEach(value => o.win += value);
+			Object.values(userID.draw).forEach(value => o.draw += value);
+			Object.values(userID.loss).forEach(value => o.loss += value);
+			str += ` **${user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- `;
+			str += `**${userID.win[keys[0]] + userID.draw[keys[0]] + userID.loss[keys[0]]}** ${emojis[0]}`;
+			for (var i = 1; i < keys.length; i++) str += ` / **${userID.win[keys[i]] + userID.draw[keys[i]] + userID.loss[keys[i]]}** ${emojis[i]}`;
+
+			let idArr = arr.map(x => x[0]).filter((x) => { return this.stat[this.channel.guild.id][this.code][user.id][x] !== undefined });
+			this.channel.guild.members.fetch({ user: idArr }).then((users) => {
+				for (var opp of Object.keys(userID)) {
+					if (opp == "win" || opp == "draw" || opp == "loss") continue;
+					let o2 = { win: 0, draw: 0, loss: 0 };
+					Object.values(userID[opp].win).forEach(value => o2.win += value);
+					Object.values(userID[opp].draw).forEach(value => o2.draw += value);
+					Object.values(userID[opp].loss).forEach(value => o2.loss += value);
+					str += `\n${user.username} - **${o2.win}** / **${o2.draw}** / **${o2.loss}** - ${users.get(opp).user.username}`;
+				}
+				this.channel.send(new Discord.MessageEmbed({ 
+					title: this.toString(),
+					description: str,
+					footer: { text: `Listing ${user.username}'s stats.` },
+					color: defaultColor
+				}));
+			});
+		} else {
+			this.channel.send(new Discord.MessageEmbed({ 
+				title: this.toString(),
+				description: `${user.toString()} hasn't played ${this.title} yet.`,
+				color: defaultColor
+			}));
+		}
+	}
+
 }
 
 /**
@@ -378,6 +461,14 @@ class RockPaperScissors extends Duel {
 	constructor(client, channel, challenger, opponent, stat) {
 		super(client, channel, "Rock Paper Scissors", "rps", ":rock: :page_facing_up: :scissors:", challenger, opponent, true,
 		{ win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } }, stat);
+	}
+
+	/**
+	 * Shows personal stats.
+	 * @param {Discord.User} user - The user to show stats for.
+	 */
+	sendPersonalStats(user) {
+		super.sendPersonalStats(user, ["rock", "paper", "scissors"], [":rock:", ":page_facing_up:", ":scissors:"]);
 	}
 
 	/**
@@ -661,6 +752,14 @@ class TicTacToe extends Duel {
 	}
 
 	/**
+	 * Shows personal stats.
+	 * @param {Discord.User} user - The user to show stats for.
+	 */
+	sendPersonalStats(user) {
+		super.sendPersonalStats(user, ["x", "o"], [":x:", ":o:"]);
+	}
+
+	/**
 	 * Starts the game.
 	 */
 	play() {
@@ -820,6 +919,14 @@ class ConnectFour extends Duel {
 			[ 0, 0, 0, 0, 0, 0, 0 ],
 			[ 0, 0, 0, 0, 0, 0, 0 ]
 		];
+	}
+
+	/**
+	 * Shows personal stats.
+	 * @param {Discord.User} user - The user to show stats for.
+	 */
+	sendPersonalStats(user) {
+		super.sendPersonalStats(user, ["red", "yellow"], [":red_circle:", ":yellow_circle:"]);
 	}
 
 	/**
