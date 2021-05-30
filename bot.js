@@ -38,7 +38,7 @@ client.on('message', (msg) => {
 						case "stats":
 							game.challenger = undefined; // stupid fix
 							game.opponent = undefined; // will be fixed soon
-							game.sendLeaderboard(mentions[0]);
+							game.sendLeaderboard();
 							return;
 					}
 				}
@@ -63,7 +63,7 @@ client.on('message', (msg) => {
 						case "stats":
 							game.challenger = undefined; // stupid fix
 							game.opponent = undefined; // will be fixed soon
-							game.sendLeaderboard(mentions[0]);
+							game.sendLeaderboard();
 							return;
 					}
 				}
@@ -90,7 +90,7 @@ client.on('message', (msg) => {
 						case "stats":
 							game.challenger = undefined; // stupid fix
 							game.opponent = undefined; // will be fixed soon
-							game.sendLeaderboard(mentions[0]);
+							game.sendLeaderboard();
 							return;
 					}
 				}
