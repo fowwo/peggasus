@@ -184,6 +184,81 @@ class Duel extends Game {
 		}
 	}
 
+	/**
+	 * Makes a leaderboard.
+	 */
+	sendLeaderboard() {
+		super.checkUndefined();
+		let arr = Object.entries(this.stat[this.channel.guild.id][this.code]).sort((a, b) => {
+			let ao = { win: 0, draw: 0, loss: 0 };
+			let bo = { win: 0, draw: 0, loss: 0 };
+			Object.values(a[1].win).forEach(value => ao.win += value);
+			Object.values(a[1].draw).forEach(value => ao.draw += value);
+			Object.values(a[1].loss).forEach(value => ao.loss += value);
+			Object.values(b[1].win).forEach(value => bo.win += value);
+			Object.values(b[1].draw).forEach(value => bo.draw += value);
+			Object.values(b[1].loss).forEach(value => bo.loss += value);
+			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+			if (x < y) return 1;
+			else if (x > y) return -1;
+			else if (ao.win < bo.win) return 1;
+			else if (ao.win > bo.win) return -1;
+			return 0;
+		});
+		if (arr.length !== 0) {
+			let rank = 1;
+			let idArr = arr.map(x => x[0]);
+			this.channel.guild.members.fetch({ user: idArr }).then((users) => {
+				let o = { win: 0, draw: 0, loss: 0 };
+				Object.values(arr[0][1].win).forEach(value => o.win += value);
+				Object.values(arr[0][1].draw).forEach(value => o.draw += value);
+				Object.values(arr[0][1].loss).forEach(value => o.loss += value);
+				let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
+				for (var i = 1; i < arr.length; i++) {
+					let ao = { win: 0, draw: 0, loss: 0 };
+					let bo = { win: 0, draw: 0, loss: 0 };
+					Object.values(arr[i][1].win).forEach(value => ao.win += value);
+					Object.values(arr[i][1].draw).forEach(value => ao.draw += value);
+					Object.values(arr[i][1].loss).forEach(value => ao.loss += value);
+					Object.values(arr[i - 1][1].win).forEach(value => bo.win += value);
+					Object.values(arr[i - 1][1].draw).forEach(value => bo.draw += value);
+					Object.values(arr[i - 1][1].loss).forEach(value => bo.loss += value);
+					let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
+					let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
+					if (x != y) rank = i + 1;
+					switch (rank) {
+						case 1:
+							str += `\n:first_place:`
+							break;
+						case 2:
+							str += `\n:second_place:`
+							break;
+						case 3:
+							str += `\n:third_place:`
+							break;
+						default:
+							str += `\n**${rank}.**`
+							break;
+					}
+					str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
+				}
+				this.channel.send(new Discord.MessageEmbed({ 
+					title: this.toString(),
+					description: str,
+					footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
+					color: defaultColor
+				}));
+			});
+		} else {
+			this.channel.send(new Discord.MessageEmbed({ 
+				title: this.toString(),
+				description: "No players to list.",
+				color: defaultColor
+			}));
+		}
+	}
+
 }
 
 /**
@@ -538,66 +613,6 @@ class RockPaperScissors extends Duel {
 	}
 
 	/**
-	 * Makes a leaderboard.
-	 */
-	sendLeaderboard() {
-		this.checkUndefined();
-		let arr = Object.entries(this.stat[this.channel.guild.id].rps).sort((a, b) => {
-			let ao = { win: a[1].win.rock + a[1].win.paper + a[1].win.scissors, draw: a[1].draw.rock + a[1].draw.paper + a[1].draw.scissors, loss: a[1].loss.rock + a[1].loss.paper + a[1].loss.scissors };
-			let bo = { win: b[1].win.rock + b[1].win.paper + b[1].win.scissors, draw: b[1].draw.rock + b[1].draw.paper + b[1].draw.scissors, loss: b[1].loss.rock + b[1].loss.paper + b[1].loss.scissors };
-			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-			if (x < y) return 1;
-			else if (x > y) return -1;
-			else if (ao.win < bo.win) return 1;
-			else if (ao.win > bo.win) return -1;
-			return 0;
-		});
-		if (arr.length !== 0) {
-			let rank = 1;
-			let idArr = arr.map(x => x[0]);
-			this.channel.guild.members.fetch({ user: idArr }).then((users) => {
-				let o = { win: arr[0][1].win.rock + arr[0][1].win.paper + arr[0][1].win.scissors, draw: arr[0][1].draw.rock + arr[0][1].draw.paper + arr[0][1].draw.scissors, loss: arr[0][1].loss.rock + arr[0][1].loss.paper + arr[0][1].loss.scissors };
-				let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
-				for (var i = 1; i < arr.length; i++) {
-					let ao = { win: arr[i][1].win.rock + arr[i][1].win.paper + arr[i][1].win.scissors, draw: arr[i][1].draw.rock + arr[i][1].draw.paper + arr[i][1].draw.scissors, loss: arr[i][1].loss.rock + arr[i][1].loss.paper + arr[i][1].loss.scissors };
-					let bo = { win: arr[i - 1][1].win.rock + arr[i - 1][1].win.paper + arr[i - 1][1].win.scissors, draw: arr[i - 1][1].draw.rock + arr[i - 1][1].draw.paper + arr[i - 1][1].draw.scissors, loss: arr[i - 1][1].loss.rock + arr[i - 1][1].loss.paper + arr[i - 1][1].loss.scissors };		
-					let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-					let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-					if (x != y) rank = i + 1;
-					switch (rank) {
-						case 1:
-							str += `\n:first_place:`
-							break;
-						case 2:
-							str += `\n:second_place:`
-							break;
-						case 3:
-							str += `\n:third_place:`
-							break;
-						default:
-							str += `\n**${rank}.**`
-							break;
-					}
-					str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
-				}
-				this.channel.send(new Discord.MessageEmbed({ 
-					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-					description: str,
-					footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
-					color: defaultColor
-				}));
-			});
-		} else {
-			this.channel.send(new Discord.MessageEmbed({ 
-				title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
-				description: "No players to list.",
-				color: defaultColor
-			}));
-		}
-	}
-
-	/**
 	 * Returns the emoji corresponding to the option.
 	 * @param {Number} option - The number representing the choice.
 	 */
@@ -727,66 +742,6 @@ class TicTacToe extends Duel {
 				}
 			}
 		});
-	}
-
-	/**
-	 * Makes a leaderboard.
-	 */
-	sendLeaderboard() {
-		this.checkUndefined();
-		let arr = Object.entries(this.stat[this.channel.guild.id].ttt).sort((a, b) => {
-			let ao = { win: a[1].win.x + a[1].win.o, draw: a[1].draw.x + a[1].draw.o, loss: a[1].loss.x + a[1].loss.o };
-			let bo = { win: b[1].win.x + b[1].win.o, draw: b[1].draw.x + b[1].draw.o, loss: b[1].loss.x + b[1].loss.o };
-			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-			if (x < y) return 1;
-			else if (x > y) return -1;
-			else if (ao.win < bo.win) return 1;
-			else if (ao.win > bo.win) return -1;
-			return 0;
-		});
-		if (arr.length !== 0) {
-			let rank = 1;
-			let idArr = arr.map(x => x[0]);
-			this.channel.guild.members.fetch({ user: idArr }).then((users) => {
-				let o = { win: arr[0][1].win.x + arr[0][1].win.o, draw: arr[0][1].draw.x + arr[0][1].draw.o, loss: arr[0][1].loss.x + arr[0][1].loss.o };
-				let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
-				for (var i = 1; i < arr.length; i++) {
-					let ao = { win: arr[i][1].win.x + arr[i][1].win.o, draw: arr[i][1].draw.x + arr[i][1].draw.o, loss: arr[i][1].loss.x + arr[i][1].loss.o };
-					let bo = { win: arr[i - 1][1].win.x + arr[i - 1][1].win.o, draw: arr[i - 1][1].draw.x + arr[i - 1][1].draw.o, loss: arr[i - 1][1].loss.x + arr[i - 1][1].loss.o };		
-					let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-					let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-					if (x != y) rank = i + 1;
-					switch (rank) {
-						case 1:
-							str += `\n:first_place:`
-							break;
-						case 2:
-							str += `\n:second_place:`
-							break;
-						case 3:
-							str += `\n:third_place:`
-							break;
-						default:
-							str += `\n**${rank}.**`
-							break;
-					}
-					str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
-				}
-				this.channel.send(new Discord.MessageEmbed({ 
-					title: ":x: :o: :x: Tic-Tac-Toe",
-					description: str,
-					footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
-					color: defaultColor
-				}));
-			});
-		} else {
-			this.channel.send(new Discord.MessageEmbed({ 
-				title: ":x: :o: :x: Tic-Tac-Toe",
-				description: "No players to list.",
-				color: defaultColor
-			}));
-		}
 	}
 
 	/**
@@ -965,66 +920,6 @@ class ConnectFour extends Duel {
 
 	isPlayerTurn(reaction, user) {
 		return ((user.id === this.redPlayer.id && this.turn === 1) || (user.id === this.yellowPlayer.id && this.turn === 2)) && ConnectFour.emojiToIndex(reaction.emoji) !== -1;
-	}
-
-	/**
-	 * Makes a leaderboard.
-	 */
-	sendLeaderboard() {
-		this.checkUndefined();
-		let arr = Object.entries(this.stat[this.channel.guild.id].c4).sort((a, b) => {
-			let ao = { win: a[1].win.red + a[1].win.yellow, draw: a[1].draw.red + a[1].draw.yellow, loss: a[1].loss.red + a[1].loss.yellow };
-			let bo = { win: b[1].win.red + b[1].win.yellow, draw: b[1].draw.red + b[1].draw.yellow, loss: b[1].loss.red + b[1].loss.yellow };
-			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-			let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-			if (x < y) return 1;
-			else if (x > y) return -1;
-			else if (ao.win < bo.win) return 1;
-			else if (ao.win > bo.win) return -1;
-			return 0;
-		});
-		if (arr.length !== 0) {
-			let rank = 1;
-			let idArr = arr.map(x => x[0]);
-			this.channel.guild.members.fetch({ user: idArr }).then((users) => {
-				let o = { win: arr[0][1].win.red + arr[0][1].win.yellow, draw: arr[0][1].draw.red + arr[0][1].draw.yellow, loss: arr[0][1].loss.red + arr[0][1].loss.yellow };
-				let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
-				for (var i = 1; i < arr.length; i++) {
-					let ao = { win: arr[i][1].win.red + arr[i][1].win.yellow, draw: arr[i][1].draw.red + arr[i][1].draw.yellow, loss: arr[i][1].loss.red + arr[i][1].loss.yellow };
-					let bo = { win: arr[i - 1][1].win.red + arr[i - 1][1].win.yellow, draw: arr[i - 1][1].draw.red + arr[i - 1][1].draw.yellow, loss: arr[i - 1][1].loss.red + arr[i - 1][1].loss.yellow };		
-					let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
-					let y = (bo.win + 0.5 * bo.draw) / (bo.win + bo.draw + bo.loss);
-					if (x != y) rank = i + 1;
-					switch (rank) {
-						case 1:
-							str += `\n:first_place:`
-							break;
-						case 2:
-							str += `\n:second_place:`
-							break;
-						case 3:
-							str += `\n:third_place:`
-							break;
-						default:
-							str += `\n**${rank}.**`
-							break;
-					}
-					str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
-				}
-				this.channel.send(new Discord.MessageEmbed({ 
-					title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
-					description: str,
-					footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
-					color: defaultColor
-				}));
-			});
-		} else {
-			this.channel.send(new Discord.MessageEmbed({ 
-				title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
-				description: "No players to list.",
-				color: defaultColor
-			}));
-		}
 	}
 
 	/**

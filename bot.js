@@ -36,8 +36,6 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							game.challenger = undefined; // stupid fix
-							game.opponent = undefined; // will be fixed soon
 							game.sendLeaderboard();
 							return;
 					}
@@ -61,8 +59,6 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							game.challenger = undefined; // stupid fix
-							game.opponent = undefined; // will be fixed soon
 							game.sendLeaderboard();
 							return;
 					}
@@ -88,8 +84,6 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							game.challenger = undefined; // stupid fix
-							game.opponent = undefined; // will be fixed soon
 							game.sendLeaderboard();
 							return;
 					}
