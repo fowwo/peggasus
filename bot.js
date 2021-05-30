@@ -26,6 +26,7 @@ client.on('message', (msg) => {
 				configCommand(args);
 				break;
 			case "rps":
+				game = new Game.RockPaperScissors(client, msg.channel, stat, msg.author, mentions[0]);
 				if (args.length > 0) {
 					switch (args[0].toLowerCase()) {
 						case "l":
@@ -35,12 +36,11 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							Game.RockPaperScissors.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
+							game.sendLeaderboard(mentions[0]);
 							return;
 					}
 				}
 				if (mentions.length !== 0) {
-					game = new Game.RockPaperScissors(client, msg.channel, stat, msg.author, mentions[0]);
 					game.onEnd(saveStats);
 					game.challenge();
 					msg.delete();
@@ -49,6 +49,7 @@ client.on('message', (msg) => {
 			case "tic-tac-toe":
 			case "tictactoe":
 			case "ttt":
+				game = new Game.TicTacToe(client, msg.channel, stat, msg.author, mentions[0]);
 				if (args.length > 0) {
 					switch (args[0].toLowerCase()) {
 						case "l":
@@ -58,12 +59,11 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							Game.TicTacToe.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
+							game.sendLeaderboard(mentions[0]);
 							return;
 					}
 				}
 				if (mentions.length > 0) {
-					game = new Game.TicTacToe(client, msg.channel, stat, msg.author, mentions[0]);
 					game.onEnd(saveStats);
 					game.challenge();
 					msg.delete();
@@ -74,6 +74,7 @@ client.on('message', (msg) => {
 			case "connect-4":
 			case "connect4":
 			case "c4":
+				game = new Game.ConnectFour(client, msg.channel, stat, msg.author, mentions[0]);
 				if (args.length > 0) {
 					switch (args[0].toLowerCase()) {
 						case "l":
@@ -83,12 +84,11 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
-							Game.ConnectFour.sendLeaderboard(msg.channel, stat, msg.guild, mentions[0]);
+							game.sendLeaderboard(mentions[0]);
 							return;
 					}
 				}
 				if (mentions.length > 0) {
-					game = new Game.ConnectFour(client, msg.channel, stat, msg.author, mentions[0]);
 					game.onEnd(saveStats);
 					game.challenge();
 					msg.delete();

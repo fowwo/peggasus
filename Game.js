@@ -68,7 +68,7 @@ class Duel extends Game {
 		this.allowBotOpponent = allowBotOpponent;
 
 		// Required methods
-		if (this.play === undefined) throw new Error(`${new.target.name} is missing the 'play(message)' method.`);
+		if (this.play === undefined) throw new Error(`${new.target.name} is missing the 'play' method.`);
 	}
 
 	/**
@@ -132,7 +132,8 @@ class Duel extends Game {
 	
 						// Challenge accepted
 						message.reactions.removeAll();
-						this.play(message);
+						this.message = message;
+						this.play();
 	
 					} else if (user.id === this.opponent.id) {
 	
@@ -317,9 +318,8 @@ class RockPaperScissors extends Duel {
 
 	/**
 	 * Starts the game.
-	 * @param {Discord.Message} message - The message to edit, or nothing if no message was made.
 	 */
-	play(message) {
+	play() {
 		if (this.opponent.id === this.client.user.id) {
 			this.channel.send(new Discord.MessageEmbed({ 
 				title: this.toString(),
@@ -327,6 +327,7 @@ class RockPaperScissors extends Duel {
 				footer: { text: "Choose an item." },
 				color: defaultColor
 			})).then((message) => {
+				this.message = message;
 				message.react("🪨");
 				message.react("📄");
 				message.react("✂️");
@@ -334,29 +335,28 @@ class RockPaperScissors extends Duel {
 				let collector = message.createReactionCollector((reaction, user) => 
 					user.id === this.challenger.id && (reaction.emoji.name === "🪨" || reaction.emoji.name === "📄" || reaction.emoji.name === "✂️")
 				).once("collect", (reaction) => {
-					let game = { challenger: null, opponent: null };
+					this.game = { challenger: null, opponent: Math.floor(Math.random() * 3) };
 					if (reaction.emoji.name === "🪨") {
-						game.challenger = 0;
+						this.game.challenger = 0;
 					} else if (reaction.emoji.name === "📄") {
-						game.challenger = 1;
+						this.game.challenger = 1;
 					} else {
-						game.challenger = 2;
+						this.game.challenger = 2;
 					}
-					game.opponent = Math.floor(Math.random() * 3);
 					message.reactions.removeAll();
-					this.endGame(game, message);
+					this.endGame();
 					collector.stop();
 				});
 			});
 		} else {
-			message.edit(new Discord.MessageEmbed({ 
+			this.message.edit(new Discord.MessageEmbed({ 
 				title: this.toString(),
 				description: `:crossed_swords: ${this.opponent.toString()} accepted ${this.challenger.toString()}'s challenge!`,
 				footer: { text: "Waiting for both players..." },
 				color: pendingColor
 			}));
 	
-			let game = { challenger: null, opponent: null };
+			this.game = { challenger: null, opponent: null };
 			this.challenger.send(new Discord.MessageEmbed({ 
 				title: this.toString(),
 				description: `What will you use against ${this.opponent.username}?`,
@@ -387,24 +387,24 @@ class RockPaperScissors extends Duel {
 						});
 						if (reaction.emoji.name === "🪨") {
 							newEmbed.setDescription(":rock: You picked Rock.");
-							game.challenger = 0;
+							this.game.challenger = 0;
 						} else if (reaction.emoji.name === "📄") {
 							newEmbed.setDescription(":page_facing_up: You picked Paper.");
-							game.challenger = 1;
+							this.game.challenger = 1;
 						} else {
 							newEmbed.setDescription(":scissors: You picked Scissors.");
-							game.challenger = 2;
+							this.game.challenger = 2;
 						}
-						if (game.opponent !== null) {
+						if (this.game.opponent !== null) {
 	
 							// Game finished
-							this.endGame(game, message, pmc, pmo);
+							this.endGame(pmc, pmo);
 	
 						} else {
 	
 							// Waiting for opponent
 							pmc.edit(newEmbed);
-							message.edit(new Discord.MessageEmbed({ 
+							this.message.edit(new Discord.MessageEmbed({ 
 								title: this.toString(),
 								description: `:crossed_swords: ${this.opponent.toString()} accepted ${this.challenger.toString()}'s challenge!`,
 								footer: { text: `Waiting for ${this.opponent.username}...` },
@@ -424,24 +424,24 @@ class RockPaperScissors extends Duel {
 						});
 						if (reaction.emoji.name === "🪨") {
 							newEmbed.setDescription(":rock: You picked Rock.");
-							game.opponent = 0;
+							this.game.opponent = 0;
 						} else if (reaction.emoji.name === "📄") {
 							newEmbed.setDescription(":page_facing_up: You picked Paper.");
-							game.opponent = 1;
+							this.game.opponent = 1;
 						} else {
 							newEmbed.setDescription(":scissors: You picked Scissors.");
-							game.opponent = 2;
+							this.game.opponent = 2;
 						}
-						if (game.challenger !== null) {
+						if (this.game.challenger !== null) {
 							
 							// Game finished
-							this.endGame(game, message, pmc, pmo);
+							this.endGame(pmc, pmo);
 	
 						} else {
 	
 							// Waiting for opponent
 							pmo.edit(newEmbed);
-							message.edit(new Discord.MessageEmbed({ 
+							this.message.edit(new Discord.MessageEmbed({ 
 								title: this.toString(),
 								description: `:crossed_swords: ${this.opponent.toString()} accepted ${this.challenger.toString()}'s challenge!`,
 								footer: { text: `Waiting for ${this.challenger.username}...` },
@@ -467,93 +467,91 @@ class RockPaperScissors extends Duel {
 
 	/**
 	 * Updates the stats and embedded messages to show the outcome.
-	 * @param {{}} game - The game object.
-	 * @param {Discord.Message} message - The public embedded message.
 	 * @param {Discord.Message} pmc - The challenger's private message.
 	 * @param {Discord.Message} pmo - The opponent's private message.
 	 */
-	endGame(game, message, pmc, pmo) {
+	endGame(pmc, pmo) {
 		this.checkUndefined();
-		if (game.challenger === game.opponent) {
+		if (this.game.challenger === this.game.opponent) {
 
 			// Tie
-			message.edit(new Discord.MessageEmbed({
+			this.message.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: successColor,
 				footer: { text: "The game is a draw!" }
 			}));
 			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: drawColor,
 				footer: { text: "The game is a draw!" }
 			}));
 			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: drawColor,
 				footer: { text: "The game is a draw!" }
 			}));
 
-			this.stat[message.guild.id][this.code][this.challenger.id].draw[RockPaperScissors.optionToKey(game.challenger)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id].draw[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].draw[RockPaperScissors.optionToKey(game.challenger)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].draw[RockPaperScissors.optionToKey(game.opponent)]++;
+			this.stat[this.message.guild.id][this.code][this.challenger.id].draw[RockPaperScissors.optionToKey(this.game.challenger)]++;
+			this.stat[this.message.guild.id][this.code][this.opponent.id].draw[RockPaperScissors.optionToKey(this.game.opponent)]++;
+			this.stat[this.message.guild.id][this.code][this.challenger.id][this.opponent.id].draw[RockPaperScissors.optionToKey(this.game.challenger)]++;
+			this.stat[this.message.guild.id][this.code][this.opponent.id][this.challenger.id].draw[RockPaperScissors.optionToKey(this.game.opponent)]++;
 
-		} else if (game.challenger === (game.opponent + 1) % 3) {
+		} else if (this.game.challenger === (this.game.opponent + 1) % 3) {
 
 			// Challenger wins
-			message.edit(new Discord.MessageEmbed({
+			this.message.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: successColor,
 				footer: { text: `${this.challenger.username} wins!` }
 			}));
 			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: winColor,
 				footer: { text: "You won!" }
 			}));
 			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: lossColor,
 				footer: { text: "You lost!" }
 			}));
 
-			this.stat[message.guild.id][this.code][this.challenger.id].win[RockPaperScissors.optionToKey(game.challenger)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id].loss[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].win[RockPaperScissors.optionToKey(game.challenger)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].loss[RockPaperScissors.optionToKey(game.opponent)]++;
+			this.stat[this.message.guild.id][this.code][this.challenger.id].win[RockPaperScissors.optionToKey(this.game.challenger)]++;
+			this.stat[this.message.guild.id][this.code][this.opponent.id].loss[RockPaperScissors.optionToKey(this.game.opponent)]++;
+			this.stat[this.message.guild.id][this.code][this.challenger.id][this.opponent.id].win[RockPaperScissors.optionToKey(this.game.challenger)]++;
+			this.stat[this.message.guild.id][this.code][this.opponent.id][this.challenger.id].loss[RockPaperScissors.optionToKey(this.game.opponent)]++;
 
 		} else {
 
 			// Opponent wins
-			message.edit(new Discord.MessageEmbed({
+			this.message.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: successColor,
 				footer: { text: `${this.opponent.username} wins!` }
 			}));
 			if (pmc !== undefined) pmc.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: lossColor,
 				footer: { text: "You lost!" }
 			}));
 			if (pmo !== undefined) pmo.edit(new Discord.MessageEmbed({
 				title: this.toString(),
-				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(game.challenger)} vs. ${RockPaperScissors.optionToEmoji(game.opponent)} ${this.opponent.toString()}`,
+				description: `${this.challenger.toString()} ${RockPaperScissors.optionToEmoji(this.game.challenger)} vs. ${RockPaperScissors.optionToEmoji(this.game.opponent)} ${this.opponent.toString()}`,
 				color: winColor,
 				footer: { text: "You won!" }
 			}));
 
-			this.stat[message.guild.id][this.code][this.challenger.id].loss[RockPaperScissors.optionToKey(game.challenger)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id].win[RockPaperScissors.optionToKey(game.opponent)]++;
-			this.stat[message.guild.id][this.code][this.challenger.id][this.opponent.id].loss[RockPaperScissors.optionToKey(game.challenger)]++;
-			this.stat[message.guild.id][this.code][this.opponent.id][this.challenger.id].win[RockPaperScissors.optionToKey(game.opponent)]++;
+			this.stat[this.message.guild.id][this.code][this.challenger.id].loss[RockPaperScissors.optionToKey(this.game.challenger)]++;
+			this.stat[this.message.guild.id][this.code][this.opponent.id].win[RockPaperScissors.optionToKey(this.game.opponent)]++;
+			this.stat[this.message.guild.id][this.code][this.challenger.id][this.opponent.id].loss[RockPaperScissors.optionToKey(this.game.challenger)]++;
+			this.stat[this.message.guild.id][this.code][this.opponent.id][this.challenger.id].win[RockPaperScissors.optionToKey(this.game.opponent)]++;
 
 		}
 		this.endFunction();
@@ -561,14 +559,11 @@ class RockPaperScissors extends Duel {
 
 	/**
 	 * Makes a leaderboard.
-	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
-	 * @param {{}} stat - The object containing game stats.
-	 * @param {Discord.Guild} guild - The guild to list stats for.
-	 * @param {Discord.User} user - (Optional) The user to list stats for.
+	 * @param {Discord.User} user - The user to list stats for.
 	 */
-	static sendLeaderboard(channel, stat, guild, user) {
-		RockPaperScissors.checkUndefined(stat, guild, "rps");
-		let arr = Object.entries(stat[guild.id].rps).sort((a, b) => {
+	sendLeaderboard(user) {
+		this.checkUndefined();
+		let arr = Object.entries(this.stat[this.channel.guild.id].rps).sort((a, b) => {
 			let ao = { win: a[1].win.rock + a[1].win.paper + a[1].win.scissors, draw: a[1].draw.rock + a[1].draw.paper + a[1].draw.scissors, loss: a[1].loss.rock + a[1].loss.paper + a[1].loss.scissors };
 			let bo = { win: b[1].win.rock + b[1].win.paper + b[1].win.scissors, draw: b[1].draw.rock + b[1].draw.paper + b[1].draw.scissors, loss: b[1].loss.rock + b[1].loss.paper + b[1].loss.scissors };
 			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
@@ -580,7 +575,7 @@ class RockPaperScissors extends Duel {
 			return 0;
 		});
 		if (user !== undefined) {
-			if (stat[guild.id].rps[user.id] !== undefined) {
+			if (this.stat[this.channel.guild.id].rps[user.id] !== undefined) {
 				let rank = 0;
 				for (rank = 0; rank < arr.length; rank++) {
 					if (arr[rank][0] == user.id) {
@@ -588,7 +583,7 @@ class RockPaperScissors extends Duel {
 						break;
 					}
 				}
-				let userID = stat[guild.id].rps[user.id];
+				let userID = this.stat[this.channel.guild.id].rps[user.id];
 				let str = "";
 				switch (rank) {
 					case 1:
@@ -608,13 +603,13 @@ class RockPaperScissors extends Duel {
 				let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
 				str += ` **${user.username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${userID.win.rock + userID.draw.rock + userID.loss.rock}** :rock: / **${userID.win.paper + userID.draw.paper + userID.loss.paper}** :page_facing_up: / **${userID.win.scissors + userID.draw.scissors + userID.loss.scissors}** :scissors:`;
 
-				let idArr = arr.map(x => x[0]).filter((x) => { return stat[guild.id].rps[user.id][x] !== undefined });
-				guild.members.fetch({ user: idArr }).then((users) => {
+				let idArr = arr.map(x => x[0]).filter((x) => { return this.stat[this.channel.guild.id].rps[user.id][x] !== undefined });
+				this.channel.guild.members.fetch({ user: idArr }).then((users) => {
 					for (var opp of Object.keys(userID)) {
 						if (opp == "win" || opp == "draw" || opp == "loss") continue;
 						str += `\n${user.username} - **${userID[opp].win.rock + userID[opp].win.paper + userID[opp].win.scissors}** / **${userID[opp].draw.rock + userID[opp].draw.paper + userID[opp].draw.scissors}** / **${userID[opp].loss.rock + userID[opp].loss.paper + userID[opp].loss.scissors}** - ${users.get(opp).user.username}`;
 					}
-					channel.send(new Discord.MessageEmbed({ 
+					this.channel.send(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: str,
 						footer: { text: `Listing ${user.username}'s stats.` },
@@ -622,7 +617,7 @@ class RockPaperScissors extends Duel {
 					}));
 				});
 			} else {
-				channel.send(new Discord.MessageEmbed({ 
+				this.channel.send(new Discord.MessageEmbed({ 
 					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 					description: `${user.toString()} hasn't played Rock Paper Scissors yet.`,
 					color: defaultColor
@@ -632,7 +627,7 @@ class RockPaperScissors extends Duel {
 			if (arr.length !== 0) {
 				let rank = 1;
 				let idArr = arr.map(x => x[0]);
-				guild.members.fetch({ user: idArr }).then((users) => {
+				this.channel.guild.members.fetch({ user: idArr }).then((users) => {
 					let o = { win: arr[0][1].win.rock + arr[0][1].win.paper + arr[0][1].win.scissors, draw: arr[0][1].draw.rock + arr[0][1].draw.paper + arr[0][1].draw.scissors, loss: arr[0][1].loss.rock + arr[0][1].loss.paper + arr[0][1].loss.scissors };
 					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
 					for (var i = 1; i < arr.length; i++) {
@@ -657,7 +652,7 @@ class RockPaperScissors extends Duel {
 						}
 						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
 					}
-					channel.send(new Discord.MessageEmbed({ 
+					this.channel.send(new Discord.MessageEmbed({ 
 						title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 						description: str,
 						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
@@ -665,7 +660,7 @@ class RockPaperScissors extends Duel {
 					}));
 				});
 			} else {
-				channel.send(new Discord.MessageEmbed({ 
+				this.channel.send(new Discord.MessageEmbed({ 
 					title: ":rock: :page_facing_up: :scissors: Rock Paper Scissors",
 					description: "No players to list.",
 					color: defaultColor
@@ -713,93 +708,92 @@ class TicTacToe extends Duel {
 
 	constructor(client, channel, stat, challenger, opponent) {
 		super(client, channel, stat, "Tic-Tac-Toe", "ttt", ":x: :o: :x:", challenger, opponent);
+
+		let players = [ this.challenger, this.opponent ];
+		this.xPlayer = players.splice(Math.round(Math.random()), 1)[0];
+		this.oPlayer = players.pop();
+		this.turn = 1;
+		this.board = [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
 	}
 
 	/**
 	 * Starts the game.
-	 * @param {Discord.Message} message - The message to edit, or nothing if no message was made.
 	 */
-	play(message) {
-		let players = [ this.challenger, this.opponent ];
-		let game = [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
-		let turn = 1;
-		const xPlayer = players.splice(Math.round(Math.random()), 1)[0];
-		const oPlayer = players.pop();
-
-		message.edit(new Discord.MessageEmbed({ 
+	play() {
+		this.message.edit(new Discord.MessageEmbed({ 
 			title: this.toString(),
-			description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
-			footer: { text: `${xPlayer.username}'s turn.` },
+			description: this.makeBoard(),
+			footer: { text: `${this.xPlayer.username}'s turn.` },
 			color: pendingColor
 		}));
-		message.react("1️⃣");
-		message.react("2️⃣");
-		message.react("3️⃣");
-		message.react("4️⃣");
-		message.react("5️⃣");
-		message.react("6️⃣");
-		message.react("7️⃣");
-		message.react("8️⃣");
-		message.react("9️⃣");
+		this.message.react("1️⃣");
+		this.message.react("2️⃣");
+		this.message.react("3️⃣");
+		this.message.react("4️⃣");
+		this.message.react("5️⃣");
+		this.message.react("6️⃣");
+		this.message.react("7️⃣");
+		this.message.react("8️⃣");
+		this.message.react("9️⃣");
 		
-		let gameCollector = message.createReactionCollector((reaction, user) => 
-			((user.id === xPlayer.id && turn === 1) || (user.id === oPlayer.id && turn === 2)) && TicTacToe.emojiToIndex(reaction.emoji) !== -1
+		let gameCollector = this.message.createReactionCollector((reaction, user) => 
+			((user.id === this.xPlayer.id && this.turn === 1) || (user.id === this.oPlayer.id && this.turn === 2)) && TicTacToe.emojiToIndex(reaction.emoji) !== -1
 		).on("collect", (reaction, user) => {
 			let i = TicTacToe.emojiToIndex(reaction.emoji);
-			if (game[i] === 0) {
-				game[i] = turn;
-				turn = turn % 2 + 1;
-				let win = TicTacToe.determineOutcome(game);
+			if (this.board[i] === 0) {
+				this.board[i] = this.turn;
+				this.turn = this.turn % 2 + 1;
+				let win = this.determineOutcome();
 				if (win !== -1) {
 					this.checkUndefined();
 					if (win === 1) {
 						// X wins.
-						message.edit(new Discord.MessageEmbed({ 
+						this.message.edit(new Discord.MessageEmbed({ 
 							title: this.toString(),
-							description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+							description: this.makeBoard(),
 							color: successColor,
-							footer: { text: `${xPlayer.username} wins!` }
+							footer: { text: `${this.xPlayer.username} wins!` }
 						}));
 			
-						this.stat[message.guild.id].ttt[xPlayer.id].win.x++;
-						this.stat[message.guild.id].ttt[oPlayer.id].loss.o++;
-						this.stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].win.x++;
-						this.stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].loss.o++;
+						this.stat[this.message.guild.id].ttt[this.xPlayer.id].win.x++;
+						this.stat[this.message.guild.id].ttt[this.oPlayer.id].loss.o++;
+						this.stat[this.message.guild.id].ttt[this.xPlayer.id][this.oPlayer.id].win.x++;
+						this.stat[this.message.guild.id].ttt[this.oPlayer.id][this.xPlayer.id].loss.o++;
 					} else if (win === 2) {
 						// O wins.
-						message.edit(new Discord.MessageEmbed({ 
+						this.message.edit(new Discord.MessageEmbed({ 
 							title: this.toString(),
-							description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+							description: this.makeBoard(),
 							color: successColor,
-							footer: { text: `${oPlayer.username} wins!` }
+							footer: { text: `${this.oPlayer.username} wins!` }
 						}));
 
-						this.stat[message.guild.id].ttt[xPlayer.id].loss.x++;
-						this.stat[message.guild.id].ttt[oPlayer.id].win.o++;
-						this.stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].loss.x++;
-						this.stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].win.o++;
+						this.stat[this.message.guild.id].ttt[this.xPlayer.id].loss.x++;
+						this.stat[this.message.guild.id].ttt[this.oPlayer.id].win.o++;
+						this.stat[this.message.guild.id].ttt[this.xPlayer.id][this.oPlayer.id].loss.x++;
+						this.stat[this.message.guild.id].ttt[this.oPlayer.id][this.xPlayer.id].win.o++;
 					} else {
 						// The game is a draw.
-						message.edit(new Discord.MessageEmbed({ 
+						this.message.edit(new Discord.MessageEmbed({ 
 							title: this.toString(),
-							description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+							description: this.makeBoard(),
 							color: successColor,
 							footer: { text: "The game is a draw!" }
 						}));
 
-						this.stat[message.guild.id].ttt[xPlayer.id].draw.x++;
-						this.stat[message.guild.id].ttt[oPlayer.id].draw.o++;
-						this.stat[message.guild.id].ttt[xPlayer.id][oPlayer.id].draw.x++;
-						this.stat[message.guild.id].ttt[oPlayer.id][xPlayer.id].draw.o++;
+						this.stat[this.message.guild.id].ttt[this.xPlayer.id].draw.x++;
+						this.stat[this.message.guild.id].ttt[this.oPlayer.id].draw.o++;
+						this.stat[this.message.guild.id].ttt[this.xPlayer.id][this.oPlayer.id].draw.x++;
+						this.stat[this.message.guild.id].ttt[this.oPlayer.id][this.xPlayer.id].draw.o++;
 					}
 					this.endFunction();
 					gameCollector.stop();
 				} else {
-					message.edit(new Discord.MessageEmbed({ 
+					this.message.edit(new Discord.MessageEmbed({ 
 						title: this.toString(),
-						description: TicTacToe.makeBoard(game, xPlayer, oPlayer),
+						description: this.makeBoard(),
 						color: pendingColor,
-						footer: { text: `${turn === 1 ? xPlayer.username : oPlayer.username}'s turn.` }
+						footer: { text: `${this.turn === 1 ? this.xPlayer.username : this.oPlayer.username}'s turn.` }
 					}));
 				}
 			}
@@ -817,14 +811,11 @@ class TicTacToe extends Duel {
 
 	/**
 	 * Makes a leaderboard.
-	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
-	 * @param {{}} stat - The object containing game stats.
-	 * @param {Discord.Guild} guild - The guild to list stats for.
-	 * @param {Discord.User} user - (Optional) The user to list stats for.
+	 * @param {Discord.User} user - The user to list stats for.
 	 */
-	static sendLeaderboard(channel, stat, guild, user) {
-		TicTacToe.checkUndefined(stat, guild, "ttt");
-		let arr = Object.entries(stat[guild.id].ttt).sort((a, b) => {
+	sendLeaderboard(user) {
+		this.checkUndefined();
+		let arr = Object.entries(this.stat[this.channel.guild.id].ttt).sort((a, b) => {
 			let ao = { win: a[1].win.x + a[1].win.o, draw: a[1].draw.x + a[1].draw.o, loss: a[1].loss.x + a[1].loss.o };
 			let bo = { win: b[1].win.x + b[1].win.o, draw: b[1].draw.x + b[1].draw.o, loss: b[1].loss.x + b[1].loss.o };
 			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
@@ -836,7 +827,7 @@ class TicTacToe extends Duel {
 			return 0;
 		});
 		if (user !== undefined) {
-			if (stat[guild.id].ttt[user.id] !== undefined) {
+			if (this.stat[this.channel.guild.id].ttt[user.id] !== undefined) {
 				let rank = 0;
 				for (rank = 0; rank < arr.length; rank++) {
 					if (arr[rank][0] == user.id) {
@@ -844,7 +835,7 @@ class TicTacToe extends Duel {
 						break;
 					}
 				}
-				let userID = stat[guild.id].ttt[user.id];
+				let userID = this.stat[this.channel.guild.id].ttt[user.id];
 				let str = "";
 				switch (rank) {
 					case 1:
@@ -864,13 +855,13 @@ class TicTacToe extends Duel {
 				let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
 				str += ` **${user.username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${userID.win.x + userID.draw.x + userID.loss.x}** :x: / **${userID.win.o + userID.draw.o + userID.loss.o}** :o:`;
 
-				let idArr = arr.map(x => x[0]).filter((x) => { return stat[guild.id].ttt[user.id][x] !== undefined });
-				guild.members.fetch({ user: idArr }).then((users) => {
+				let idArr = arr.map(x => x[0]).filter((x) => { return this.stat[this.channel.guild.id].ttt[user.id][x] !== undefined });
+				this.channel.guild.members.fetch({ user: idArr }).then((users) => {
 					for (var opp of Object.keys(userID)) {
 						if (opp == "win" || opp == "draw" || opp == "loss") continue;
 						str += `\n${user.username} - **${userID[opp].win.x + userID[opp].win.o}** / **${userID[opp].draw.x + userID[opp].draw.o}** / **${userID[opp].loss.x + userID[opp].loss.o}** - ${users.get(opp).user.username}`;
 					}
-					channel.send(new Discord.MessageEmbed({ 
+					this.channel.send(new Discord.MessageEmbed({ 
 						title: ":x: :o: :x: Tic-Tac-Toe",
 						description: str,
 						footer: { text: `Listing ${user.username}'s stats.` },
@@ -878,7 +869,7 @@ class TicTacToe extends Duel {
 					}));
 				});
 			} else {
-				channel.send(new Discord.MessageEmbed({ 
+				this.channel.send(new Discord.MessageEmbed({ 
 					title: ":x: :o: :x: Tic-Tac-Toe",
 					description: `${user.toString()} hasn't played Tic-Tac-Toe yet.`,
 					color: defaultColor
@@ -888,7 +879,7 @@ class TicTacToe extends Duel {
 			if (arr.length !== 0) {
 				let rank = 1;
 				let idArr = arr.map(x => x[0]);
-				guild.members.fetch({ user: idArr }).then((users) => {
+				this.channel.guild.members.fetch({ user: idArr }).then((users) => {
 					let o = { win: arr[0][1].win.x + arr[0][1].win.o, draw: arr[0][1].draw.x + arr[0][1].draw.o, loss: arr[0][1].loss.x + arr[0][1].loss.o };
 					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
 					for (var i = 1; i < arr.length; i++) {
@@ -913,7 +904,7 @@ class TicTacToe extends Duel {
 						}
 						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
 					}
-					channel.send(new Discord.MessageEmbed({ 
+					this.channel.send(new Discord.MessageEmbed({ 
 						title: ":x: :o: :x: Tic-Tac-Toe",
 						description: str,
 						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
@@ -921,7 +912,7 @@ class TicTacToe extends Duel {
 					}));
 				});
 			} else {
-				channel.send(new Discord.MessageEmbed({ 
+				this.channel.send(new Discord.MessageEmbed({ 
 					title: ":x: :o: :x: Tic-Tac-Toe",
 					description: "No players to list.",
 					color: defaultColor
@@ -931,13 +922,10 @@ class TicTacToe extends Duel {
 	}
 
 	/**
-	 * Draws the board from the given game data.
-	 * @param {Number[]} game - The game data.
-	 * @param {Discord.User} xPlayer
-	 * @param {Discord.User} oPlayer
+	 * Draws the board.
 	 */
-	static makeBoard(game, xPlayer, oPlayer) {
-		return `\`\`\`elm\n${game[0] === 0 ? '1' : game[0] === 1 ? 'X' : 'O'} │ ${game[1] === 0 ? '2' : game[1] === 1 ? 'X' : 'O'} │ ${game[2] === 0 ? '3' : game[2] === 1 ? 'X' : 'O'}\n──┼───┼──    X - ${xPlayer.username}   \n${game[3] === 0 ? '4' : game[3] === 1 ? 'X' : 'O'} │ ${game[4] === 0 ? '5' : game[4] === 1 ? 'X' : 'O'} │ ${game[5] === 0 ? '6' : game[5] === 1 ? 'X' : 'O'}\n──┼───┼──    O - ${oPlayer.username}   \n${game[6] === 0 ? '7' : game[6] === 1 ? 'X' : 'O'} │ ${game[7] === 0 ? '8' : game[7] === 1 ? 'X' : 'O'} │ ${game[8] === 0 ? '9' : game[8] === 1 ? 'X' : 'O'}\`\`\``;
+	makeBoard() {
+		return `\`\`\`elm\n${this.board[0] === 0 ? '1' : this.board[0] === 1 ? 'X' : 'O'} │ ${this.board[1] === 0 ? '2' : this.board[1] === 1 ? 'X' : 'O'} │ ${this.board[2] === 0 ? '3' : this.board[2] === 1 ? 'X' : 'O'}\n──┼───┼──    X - ${this.xPlayer.username}   \n${this.board[3] === 0 ? '4' : this.board[3] === 1 ? 'X' : 'O'} │ ${this.board[4] === 0 ? '5' : this.board[4] === 1 ? 'X' : 'O'} │ ${this.board[5] === 0 ? '6' : this.board[5] === 1 ? 'X' : 'O'}\n──┼───┼──    O - ${this.oPlayer.username}   \n${this.board[6] === 0 ? '7' : this.board[6] === 1 ? 'X' : 'O'} │ ${this.board[7] === 0 ? '8' : this.board[7] === 1 ? 'X' : 'O'} │ ${this.board[8] === 0 ? '9' : this.board[8] === 1 ? 'X' : 'O'}\`\`\``;
 	}
 
 	/**
@@ -971,19 +959,18 @@ class TicTacToe extends Duel {
 
 	/**
 	 * Checks if the game has a winner.
-	 * @param {Number[]} game - The game data.
 	 */
-	static determineOutcome(game) {
-		if ((game[0] !== 0 && game[0] === game[1] && game[1] === game[2])) return game[0]; // Top Row
-		if ((game[3] !== 0 && game[3] === game[4] && game[4] === game[5])) return game[3]; // Middle Row
-		if ((game[6] !== 0 && game[6] === game[7] && game[7] === game[8])) return game[6]; // Bottom Row
-		if ((game[0] !== 0 && game[0] === game[3] && game[3] === game[6])) return game[0]; // Left Column
-		if ((game[1] !== 0 && game[1] === game[4] && game[4] === game[7])) return game[1]; // Middle Column
-		if ((game[2] !== 0 && game[2] === game[5] && game[5] === game[8])) return game[2]; // Right Column
-		if ((game[0] !== 0 && game[0] === game[4] && game[4] === game[8])) return game[0]; // Down-Right
-		if ((game[2] !== 0 && game[2] === game[4] && game[4] === game[6])) return game[2]; // Down-Left
+	determineOutcome() {
+		if ((this.board[0] !== 0 && this.board[0] === this.board[1] && this.board[1] === this.board[2])) return this.board[0]; // Top Row
+		if ((this.board[3] !== 0 && this.board[3] === this.board[4] && this.board[4] === this.board[5])) return this.board[3]; // Middle Row
+		if ((this.board[6] !== 0 && this.board[6] === this.board[7] && this.board[7] === this.board[8])) return this.board[6]; // Bottom Row
+		if ((this.board[0] !== 0 && this.board[0] === this.board[3] && this.board[3] === this.board[6])) return this.board[0]; // Left Column
+		if ((this.board[1] !== 0 && this.board[1] === this.board[4] && this.board[4] === this.board[7])) return this.board[1]; // Middle Column
+		if ((this.board[2] !== 0 && this.board[2] === this.board[5] && this.board[5] === this.board[8])) return this.board[2]; // Right Column
+		if ((this.board[0] !== 0 && this.board[0] === this.board[4] && this.board[4] === this.board[8])) return this.board[0]; // Down-Right
+		if ((this.board[2] !== 0 && this.board[2] === this.board[4] && this.board[4] === this.board[6])) return this.board[2]; // Down-Left
 
-		if (game.indexOf(0) === -1) return 0; // The game is a draw.
+		if (this.board.indexOf(0) === -1) return 0; // The game is a draw.
 		return -1; // The game is still in progress.
 	}
 
@@ -996,118 +983,119 @@ class ConnectFour extends Duel {
 	
 	constructor(client, channel, stat, challenger, opponent) {
 		super(client, channel, stat, "Connect Four", "c4", ":red_circle: :yellow_circle: :red_circle:", challenger, opponent);
+
+		let players = [ this.challenger, this.opponent ];
+		this.redPlayer = players.splice(Math.round(Math.random()), 1)[0];
+		this.yellowPlayer = players.pop();
+		this.turn = 1;
+		this.board = [
+			[ 0, 0, 0, 0, 0, 0, 0 ],
+			[ 0, 0, 0, 0, 0, 0, 0 ],
+			[ 0, 0, 0, 0, 0, 0, 0 ],
+			[ 0, 0, 0, 0, 0, 0, 0 ],
+			[ 0, 0, 0, 0, 0, 0, 0 ],
+			[ 0, 0, 0, 0, 0, 0, 0 ]
+		];
 	}
 
 	/**
 	 * Starts the game.
-	 * @param {Discord.Message} message - The message to edit, or nothing if no message was made.
 	 */
-	play(message) {
-		let players = [ this.challenger, this.opponent ];
-		let game = [ [ 0, 0, 0, 0, 0, 0, 0 ],
-					 [ 0, 0, 0, 0, 0, 0, 0 ],
-					 [ 0, 0, 0, 0, 0, 0, 0 ],
-					 [ 0, 0, 0, 0, 0, 0, 0 ],
-					 [ 0, 0, 0, 0, 0, 0, 0 ],
-					 [ 0, 0, 0, 0, 0, 0, 0 ] ];
-		let turn = 1;
-		const redPlayer = players.splice(Math.round(Math.random()), 1)[0];
-		const yellowPlayer = players.pop();
-
-		message.edit(new Discord.MessageEmbed({ 
+	play() {
+		this.message.edit(new Discord.MessageEmbed({ 
 			title: this.toString(),
-			description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
-			footer: { text: `${redPlayer.username}'s turn.` },
+			description: this.makeBoard(),
+			footer: { text: `${this.redPlayer.username}'s turn.` },
 			color: pendingColor
 		}));
-		message.react("1️⃣");
-		message.react("2️⃣");
-		message.react("3️⃣");
-		message.react("4️⃣");
-		message.react("5️⃣");
-		message.react("6️⃣");
-		message.react("7️⃣");
+		this.message.react("1️⃣");
+		this.message.react("2️⃣");
+		this.message.react("3️⃣");
+		this.message.react("4️⃣");
+		this.message.react("5️⃣");
+		this.message.react("6️⃣");
+		this.message.react("7️⃣");
 		
 		// The ReactionCollector filter does not apply to removing reactions and was causing weird problems,
 		// so I have decided not to use them and instead "filter" them from within the events.
-		let gameCollector = message.createReactionCollector((reaction, user) => { return true; },
+		this.reactionCollector = this.message.createReactionCollector((reaction, user) => { return true; },
 			{ dispose: true }
 		).on("collect", (reaction, user) => {
-			if (isPlayerTurn(reaction, user, turn)) playMove(this, reaction);
+			if (this.isPlayerTurn(reaction, user)) this.playColumn(ConnectFour.emojiToIndex(reaction.emoji));
 		}).on("remove", (reaction, user) => {
-			if (isPlayerTurn(reaction, user, turn)) playMove(this, reaction);
+			if (this.isPlayerTurn(reaction, user)) this.playColumn(ConnectFour.emojiToIndex(reaction.emoji));
 		});
+	}
 
-		function isPlayerTurn(reaction, user, turn) {
-			return ((user.id === redPlayer.id && turn === 1) || (user.id === yellowPlayer.id && turn === 2)) && ConnectFour.emojiToIndex(reaction.emoji) !== -1;
-		}
-		function playMove(self, reaction) {
-			let i = ConnectFour.emojiToIndex(reaction.emoji);
-			let ri = -1;
-			for (var r = 0; r < 6; r++) {
-				if (game[r][i] === 0) {
-					ri = r;
-					break;
-				}
+	playColumn(column) {
+		let ri = -1;
+		for (var r = 0; r < 6; r++) {
+			if (this.board[r][column] === 0) {
+				ri = r;
+				break;
 			}
-			if (ri !== -1) {
-				game[ri][i] = turn;
-				turn = turn % 2 + 1;
-				let win = ConnectFour.determineOutcome(game, ri, i);
-				if (win !== -1) {
-					self.checkUndefined();
-					if (win === 1) {
-						// Red wins.
-						message.edit(new Discord.MessageEmbed({ 
-							title: self.toString(),
-							description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
-							color: successColor,
-							footer: { text: `${redPlayer.username} wins!` }
-						}));
-			
-						self.stat[message.guild.id].c4[redPlayer.id].win.red++;
-						self.stat[message.guild.id].c4[yellowPlayer.id].loss.yellow++;
-						self.stat[message.guild.id].c4[redPlayer.id][yellowPlayer.id].win.red++;
-						self.stat[message.guild.id].c4[yellowPlayer.id][redPlayer.id].loss.yellow++;
-					} else if (win === 2) {
-						// Yellow wins.
-						message.edit(new Discord.MessageEmbed({ 
-							title: self.toString(),
-							description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
-							color: successColor,
-							footer: { text: `${yellowPlayer.username} wins!` }
-						}));
-
-						self.stat[message.guild.id].c4[redPlayer.id].loss.red++;
-						self.stat[message.guild.id].c4[yellowPlayer.id].win.yellow++;
-						self.stat[message.guild.id].c4[redPlayer.id][yellowPlayer.id].loss.red++;
-						self.stat[message.guild.id].c4[yellowPlayer.id][redPlayer.id].win.yellow++;
-					} else {
-						// The game is a draw.
-						message.edit(new Discord.MessageEmbed({ 
-							title: self.toString(),
-							description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
-							color: successColor,
-							footer: { text: "The game is a draw!" }
-						}));
-
-						self.stat[message.guild.id].c4[redPlayer.id].draw.red++;
-						self.stat[message.guild.id].c4[yellowPlayer.id].draw.yellow++;
-						self.stat[message.guild.id].c4[redPlayer.id][yellowPlayer.id].draw.red++;
-						self.stat[message.guild.id].c4[yellowPlayer.id][redPlayer.id].draw.yellow++;
-					}
-					self.endFunction();
-					gameCollector.stop();
-				} else {
-					message.edit(new Discord.MessageEmbed({ 
-						title: self.toString(),
-						description: ConnectFour.makeBoard(game, redPlayer, yellowPlayer),
-						color: pendingColor,
-						footer: { text: `${turn === 1 ? redPlayer.username : yellowPlayer.username}'s turn.` }
+		}
+		if (ri !== -1) {
+			this.board[ri][column] = this.turn;
+			this.turn = this.turn % 2 + 1;
+			let win = this.determineOutcome(ri, column);
+			if (win !== -1) {
+				this.checkUndefined();
+				if (win === 1) {
+					// Red wins.
+					this.message.edit(new Discord.MessageEmbed({ 
+						title: this.toString(),
+						description: this.makeBoard(),
+						color: successColor,
+						footer: { text: `${this.redPlayer.username} wins!` }
 					}));
+		
+					this.stat[this.message.guild.id].c4[this.redPlayer.id].win.red++;
+					this.stat[this.message.guild.id].c4[this.yellowPlayer.id].loss.yellow++;
+					this.stat[this.message.guild.id].c4[this.redPlayer.id][this.yellowPlayer.id].win.red++;
+					this.stat[this.message.guild.id].c4[this.yellowPlayer.id][this.redPlayer.id].loss.yellow++;
+				} else if (win === 2) {
+					// Yellow wins.
+					this.message.edit(new Discord.MessageEmbed({ 
+						title: this.toString(),
+						description: this.makeBoard(),
+						color: successColor,
+						footer: { text: `${this.yellowPlayer.username} wins!` }
+					}));
+
+					this.stat[this.message.guild.id].c4[this.redPlayer.id].loss.red++;
+					this.stat[this.message.guild.id].c4[this.yellowPlayer.id].win.yellow++;
+					this.stat[this.message.guild.id].c4[this.redPlayer.id][this.yellowPlayer.id].loss.red++;
+					this.stat[this.message.guild.id].c4[this.yellowPlayer.id][this.redPlayer.id].win.yellow++;
+				} else {
+					// The game is a draw.
+					this.message.edit(new Discord.MessageEmbed({ 
+						title: this.toString(),
+						description: this.makeBoard(),
+						color: successColor,
+						footer: { text: "The game is a draw!" }
+					}));
+
+					this.stat[this.message.guild.id].c4[this.redPlayer.id].draw.red++;
+					this.stat[this.message.guild.id].c4[this.yellowPlayer.id].draw.yellow++;
+					this.stat[this.message.guild.id].c4[this.redPlayer.id][this.yellowPlayer.id].draw.red++;
+					this.stat[this.message.guild.id].c4[this.yellowPlayer.id][this.redPlayer.id].draw.yellow++;
 				}
+				this.endFunction();
+				this.reactionCollector.stop();
+			} else {
+				this.message.edit(new Discord.MessageEmbed({ 
+					title: this.toString(),
+					description: this.makeBoard(),
+					color: pendingColor,
+					footer: { text: `${this.turn === 1 ? this.redPlayer.username : this.yellowPlayer.username}'s turn.` }
+				}));
 			}
 		}
+	}
+
+	isPlayerTurn(reaction, user) {
+		return ((user.id === this.redPlayer.id && this.turn === 1) || (user.id === this.yellowPlayer.id && this.turn === 2)) && ConnectFour.emojiToIndex(reaction.emoji) !== -1;
 	}
 
 	/**
@@ -1121,14 +1109,11 @@ class ConnectFour extends Duel {
 
 	/**
 	 * Makes a leaderboard.
-	 * @param {Discord.TextChannel} channel - The channel to send the leaderboard to.
-	 * @param {{}} stat - The object containing game stats.
-	 * @param {Discord.Guild} guild - The guild to list stats for.
-	 * @param {Discord.User} user - (Optional) The user to list stats for.
+	 * @param {Discord.User} user - The user to list stats for.
 	 */
-	static sendLeaderboard(channel, stat, guild, user) {
-		ConnectFour.checkUndefined(stat, guild, "c4");
-		let arr = Object.entries(stat[guild.id].c4).sort((a, b) => {
+	sendLeaderboard(user) {
+		this.checkUndefined();
+		let arr = Object.entries(this.stat[this.channel.guild.id].c4).sort((a, b) => {
 			let ao = { win: a[1].win.red + a[1].win.yellow, draw: a[1].draw.red + a[1].draw.yellow, loss: a[1].loss.red + a[1].loss.yellow };
 			let bo = { win: b[1].win.red + b[1].win.yellow, draw: b[1].draw.red + b[1].draw.yellow, loss: b[1].loss.red + b[1].loss.yellow };
 			let x = (ao.win + 0.5 * ao.draw) / (ao.win + ao.draw + ao.loss);
@@ -1140,7 +1125,7 @@ class ConnectFour extends Duel {
 			return 0;
 		});
 		if (user !== undefined) {
-			if (stat[guild.id].c4[user.id] !== undefined) {
+			if (this.stat[this.channel.guild.id].c4[user.id] !== undefined) {
 				let rank = 0;
 				for (rank = 0; rank < arr.length; rank++) {
 					if (arr[rank][0] == user.id) {
@@ -1148,7 +1133,7 @@ class ConnectFour extends Duel {
 						break;
 					}
 				}
-				let userID = stat[guild.id].c4[user.id];
+				let userID = this.stat[this.channel.guild.id].c4[user.id];
 				let str = "";
 				switch (rank) {
 					case 1:
@@ -1168,13 +1153,13 @@ class ConnectFour extends Duel {
 				let x = (o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss);
 				str += ` **${user.username}** (${x.toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}\n-- **${userID.win.red + userID.draw.red + userID.loss.red}** :x: / **${userID.win.yellow + userID.draw.yellow + userID.loss.yellow}** :o:`;
 
-				let idArr = arr.map(x => x[0]).filter((x) => { return stat[guild.id].c4[user.id][x] !== undefined });
-				guild.members.fetch({ user: idArr }).then((users) => {
+				let idArr = arr.map(x => x[0]).filter((x) => { return this.stat[this.channel.guild.id].c4[user.id][x] !== undefined });
+				this.channel.guild.members.fetch({ user: idArr }).then((users) => {
 					for (var opp of Object.keys(userID)) {
 						if (opp == "win" || opp == "draw" || opp == "loss") continue;
 						str += `\n${user.username} - **${userID[opp].win.red + userID[opp].win.yellow}** / **${userID[opp].draw.red + userID[opp].draw.yellow}** / **${userID[opp].loss.red + userID[opp].loss.yellow}** - ${users.get(opp).user.username}`;
 					}
-					channel.send(new Discord.MessageEmbed({ 
+					this.channel.send(new Discord.MessageEmbed({ 
 						title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
 						description: str,
 						footer: { text: `Listing ${user.username}'s stats.` },
@@ -1182,7 +1167,7 @@ class ConnectFour extends Duel {
 					}));
 				});
 			} else {
-				channel.send(new Discord.MessageEmbed({ 
+				this.channel.send(new Discord.MessageEmbed({ 
 					title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
 					description: `${user.toString()} hasn't played Connect Four yet.`,
 					color: defaultColor
@@ -1192,7 +1177,7 @@ class ConnectFour extends Duel {
 			if (arr.length !== 0) {
 				let rank = 1;
 				let idArr = arr.map(x => x[0]);
-				guild.members.fetch({ user: idArr }).then((users) => {
+				this.channel.guild.members.fetch({ user: idArr }).then((users) => {
 					let o = { win: arr[0][1].win.red + arr[0][1].win.yellow, draw: arr[0][1].draw.red + arr[0][1].draw.yellow, loss: arr[0][1].loss.red + arr[0][1].loss.yellow };
 					let str = `:first_place: **${users.get(arr[0][0]).user.username}** (${((o.win + 0.5 * o.draw) / (o.win + o.draw + o.loss)).toFixed(3)})\n-- **${o.win}** win${o.win === 1 ? "" : "s"} / **${o.draw}** tie${o.draw === 1 ? "" : "s"} / **${o.loss}** loss${o.loss === 1 ? "" : "es"}`;
 					for (var i = 1; i < arr.length; i++) {
@@ -1217,7 +1202,7 @@ class ConnectFour extends Duel {
 						}
 						str += ` **${users.get(arr[i][0]).user.username}** (${x.toFixed(3)})\n-- **${ao.win}** win${ao.win === 1 ? "" : "s"} / **${ao.draw}** tie${ao.draw === 1 ? "" : "s"} / **${ao.loss}** loss${ao.loss === 1 ? "" : "es"}`;
 					}
-					channel.send(new Discord.MessageEmbed({ 
+					this.channel.send(new Discord.MessageEmbed({ 
 						title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
 						description: str,
 						footer: { text: `Listing the top ${arr.length} player${arr.length === 1 ? "" : "s"} sorted by WDL ratio.` },
@@ -1225,7 +1210,7 @@ class ConnectFour extends Duel {
 					}));
 				});
 			} else {
-				channel.send(new Discord.MessageEmbed({ 
+				this.channel.send(new Discord.MessageEmbed({ 
 					title: ":red_circle: :yellow_circle: :red_circle: Connect Four",
 					description: "No players to list.",
 					color: defaultColor
@@ -1235,17 +1220,14 @@ class ConnectFour extends Duel {
 	}
 
 	/**
-	 * Draws the board from the given game data.
-	 * @param {Number[]} game - The game data.
-	 * @param {Discord.User} redPlayer
-	 * @param {Discord.User} yellowPlayer
+	 * Draws the board.
 	 */
-	static makeBoard(game, redPlayer, yellowPlayer) {
-		let str = `${redPlayer.toString()} :red_circle: vs. :yellow_circle: ${yellowPlayer.toString()}\n`;
+	makeBoard() {
+		let str = `${this.redPlayer.toString()} :red_circle: vs. :yellow_circle: ${this.yellowPlayer.toString()}\n`;
 		for (var r = 5; r >= 0; r--) {
-			str += `\n${game[r][0] === 1 ? ":red_circle:" : game[r][0] === 2 ? ":yellow_circle:" : ":black_circle:"}`;
+			str += `\n${this.board[r][0] === 1 ? ":red_circle:" : this.board[r][0] === 2 ? ":yellow_circle:" : ":black_circle:"}`;
 			for (var c = 1; c < 7; c++) {
-				str += ` ${game[r][c] === 1 ? ":red_circle:" : game[r][c] === 2 ? ":yellow_circle:" : ":black_circle:"}`;
+				str += ` ${this.board[r][c] === 1 ? ":red_circle:" : this.board[r][c] === 2 ? ":yellow_circle:" : ":black_circle:"}`;
 			}
 		}
 		return str;
@@ -1278,31 +1260,30 @@ class ConnectFour extends Duel {
 
 	/**
 	 * Checks if the game has a winner.
-	 * @param {Number[][]} game - The game data.
 	 * @param {Number} r - The index of the row played.
 	 * @param {Number} c - The index of the column played.
 	 */
-	static determineOutcome(game, r, c) {
-		let v = game[r][c];
-		if ((          r <= 2                     && game[r + 1][c] === v     && game[r + 2][c] === v     && game[r + 3][c] === v) ||     // Vertical 1 (Up)
-			(r >= 1 && r <= 3                     && game[r + 1][c] === v     && game[r + 2][c] === v     && game[r - 1][c] === v) ||     // Vertical 2
-			(r >= 2 && r <= 4                     && game[r + 1][c] === v     && game[r - 2][c] === v     && game[r - 1][c] === v) ||     // Vertical 3
-			(r >= 3                               && game[r - 3][c] === v     && game[r - 2][c] === v     && game[r - 1][c] === v) ||     // Vertical 4 (Down)
-			(                              c <= 3 && game[r][c + 1] === v     && game[r][c + 2] === v     && game[r][c + 3] === v) ||     // Horizontal 1 (Right)
-			(                    c >= 1 && c <= 4 && game[r][c + 1] === v     && game[r][c + 2] === v     && game[r][c - 1] === v) ||     // Horizontal 2
-			(                    c >= 2 && c <= 5 && game[r][c + 1] === v     && game[r][c - 2] === v     && game[r][c - 1] === v) ||     // Horizontal 3
-			(                    c >= 3           && game[r][c - 3] === v     && game[r][c - 2] === v     && game[r][c - 1] === v) ||     // Horizontal 4 (Left)
-			(          r <= 2           && c <= 3 && game[r + 1][c + 1] === v && game[r + 2][c + 2] === v && game[r + 3][c + 3] === v) || // ⟋ 1 (Up-Right)
-			(r >= 1 && r <= 3 && c >= 1 && c <= 4 && game[r + 1][c + 1] === v && game[r + 2][c + 2] === v && game[r - 1][c - 1] === v) || // ⟋ 2
-			(r >= 2 && r <= 4 && c >= 2 && c <= 5 && game[r + 1][c + 1] === v && game[r - 2][c - 2] === v && game[r - 1][c - 1] === v) || // ⟋ 3
-			(r >= 3           && c >= 3           && game[r - 3][c - 3] === v && game[r - 2][c - 2] === v && game[r - 1][c - 1] === v) || // ⟋ 4 (Down-Left)
-			(r >= 3                     && c <= 3 && game[r - 1][c + 1] === v && game[r - 2][c + 2] === v && game[r - 3][c + 3] === v) || // ⟍ 1 (Down-Right)
-			(r >= 2 && r <= 4 && c >= 1 && c <= 4 && game[r - 1][c + 1] === v && game[r - 2][c + 2] === v && game[r + 1][c - 1] === v) || // ⟍ 2
-			(r >= 1 && r <= 3 && c >= 2 && c <= 5 && game[r - 1][c + 1] === v && game[r + 2][c - 2] === v && game[r + 1][c - 1] === v) || // ⟍ 3
-			(          r <= 2 && c >= 3           && game[r + 3][c - 3] === v && game[r + 2][c - 2] === v && game[r + 1][c - 1] === v))   // ⟍ 4 (Up-Left)
-			return game[r][c];
+	determineOutcome(r, c) {
+		let v = this.board[r][c];
+		if ((          r <= 2                     && this.board[r + 1][c] === v     && this.board[r + 2][c] === v     && this.board[r + 3][c] === v) ||     // Vertical 1 (Up)
+			(r >= 1 && r <= 3                     && this.board[r + 1][c] === v     && this.board[r + 2][c] === v     && this.board[r - 1][c] === v) ||     // Vertical 2
+			(r >= 2 && r <= 4                     && this.board[r + 1][c] === v     && this.board[r - 2][c] === v     && this.board[r - 1][c] === v) ||     // Vertical 3
+			(r >= 3                               && this.board[r - 3][c] === v     && this.board[r - 2][c] === v     && this.board[r - 1][c] === v) ||     // Vertical 4 (Down)
+			(                              c <= 3 && this.board[r][c + 1] === v     && this.board[r][c + 2] === v     && this.board[r][c + 3] === v) ||     // Horizontal 1 (Right)
+			(                    c >= 1 && c <= 4 && this.board[r][c + 1] === v     && this.board[r][c + 2] === v     && this.board[r][c - 1] === v) ||     // Horizontal 2
+			(                    c >= 2 && c <= 5 && this.board[r][c + 1] === v     && this.board[r][c - 2] === v     && this.board[r][c - 1] === v) ||     // Horizontal 3
+			(                    c >= 3           && this.board[r][c - 3] === v     && this.board[r][c - 2] === v     && this.board[r][c - 1] === v) ||     // Horizontal 4 (Left)
+			(          r <= 2           && c <= 3 && this.board[r + 1][c + 1] === v && this.board[r + 2][c + 2] === v && this.board[r + 3][c + 3] === v) || // ⟋ 1 (Up-Right)
+			(r >= 1 && r <= 3 && c >= 1 && c <= 4 && this.board[r + 1][c + 1] === v && this.board[r + 2][c + 2] === v && this.board[r - 1][c - 1] === v) || // ⟋ 2
+			(r >= 2 && r <= 4 && c >= 2 && c <= 5 && this.board[r + 1][c + 1] === v && this.board[r - 2][c - 2] === v && this.board[r - 1][c - 1] === v) || // ⟋ 3
+			(r >= 3           && c >= 3           && this.board[r - 3][c - 3] === v && this.board[r - 2][c - 2] === v && this.board[r - 1][c - 1] === v) || // ⟋ 4 (Down-Left)
+			(r >= 3                     && c <= 3 && this.board[r - 1][c + 1] === v && this.board[r - 2][c + 2] === v && this.board[r - 3][c + 3] === v) || // ⟍ 1 (Down-Right)
+			(r >= 2 && r <= 4 && c >= 1 && c <= 4 && this.board[r - 1][c + 1] === v && this.board[r - 2][c + 2] === v && this.board[r + 1][c - 1] === v) || // ⟍ 2
+			(r >= 1 && r <= 3 && c >= 2 && c <= 5 && this.board[r - 1][c + 1] === v && this.board[r + 2][c - 2] === v && this.board[r + 1][c - 1] === v) || // ⟍ 3
+			(          r <= 2 && c >= 3           && this.board[r + 3][c - 3] === v && this.board[r + 2][c - 2] === v && this.board[r + 1][c - 1] === v))   // ⟍ 4 (Up-Left)
+			return this.board[r][c];
 
-		if (game[5].indexOf(0) === -1) return 0; // The game is a draw.
+		if (this.board[5].indexOf(0) === -1) return 0; // The game is a draw.
 		return -1; // The game is still in progress.
 	}
 
