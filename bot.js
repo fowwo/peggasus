@@ -26,7 +26,7 @@ client.on('message', (msg) => {
 				configCommand(args);
 				break;
 			case "rps":
-				game = new Game.RockPaperScissors(client, msg.channel, stat, msg.author, mentions[0]);
+				game = new Game.RockPaperScissors(client, msg.channel, msg.author, mentions[0], stat);
 				if (args.length > 0) {
 					switch (args[0].toLowerCase()) {
 						case "l":
@@ -36,6 +36,8 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
+							game.challenger = undefined; // stupid fix
+							game.opponent = undefined; // will be fixed soon
 							game.sendLeaderboard(mentions[0]);
 							return;
 					}
@@ -49,7 +51,7 @@ client.on('message', (msg) => {
 			case "tic-tac-toe":
 			case "tictactoe":
 			case "ttt":
-				game = new Game.TicTacToe(client, msg.channel, stat, msg.author, mentions[0]);
+				game = new Game.TicTacToe(client, msg.channel, msg.author, mentions[0], stat);
 				if (args.length > 0) {
 					switch (args[0].toLowerCase()) {
 						case "l":
@@ -59,6 +61,8 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
+							game.challenger = undefined; // stupid fix
+							game.opponent = undefined; // will be fixed soon
 							game.sendLeaderboard(mentions[0]);
 							return;
 					}
@@ -74,7 +78,7 @@ client.on('message', (msg) => {
 			case "connect-4":
 			case "connect4":
 			case "c4":
-				game = new Game.ConnectFour(client, msg.channel, stat, msg.author, mentions[0]);
+				game = new Game.ConnectFour(client, msg.channel, msg.author, mentions[0], stat);
 				if (args.length > 0) {
 					switch (args[0].toLowerCase()) {
 						case "l":
@@ -84,6 +88,8 @@ client.on('message', (msg) => {
 						case "scores":
 						case "stat":
 						case "stats":
+							game.challenger = undefined; // stupid fix
+							game.opponent = undefined; // will be fixed soon
 							game.sendLeaderboard(mentions[0]);
 							return;
 					}

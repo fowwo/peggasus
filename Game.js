@@ -18,19 +18,21 @@ class Game {
 	/**
 	 * @param {Discord.Client} client - The client.
 	 * @param {Discord.TextChannel} channel - The channel where the game is created.
-	 * @param {{}} stat - The object containing game stats.
 	 * @param {String} title - The name of the game.
 	 * @param {String} code - The shorthand name of the game.
 	 * @param {String} prefix - The game title's prefix.
+	 * @param {} defaultStat - The default value for stats.
+	 * @param {{}} stat - The object containing game stats.
 	 */
-	constructor(client, channel, stat, title, code, prefix) {
+	constructor(client, channel, title, code, prefix, defaultStat, stat = {}) {
 		if (new.target === Game) throw new TypeError("Cannot create instance of an abstract game.");
 		this.client = client;
 		this.channel = channel;
-		this.stat = stat;
 		this.title = title;
 		this.code = code;
 		this.prefix = prefix;
+		this.defaultStat = defaultStat;
+		this.stat = stat;
 		this.endFunction = () => {};
 	}
 
@@ -40,6 +42,16 @@ class Game {
 
 	toString() {
 		return `${this.prefix} ${this.title}`;
+	}
+
+	/**
+	 * Checks for undefined stats and creates data if necessary.
+	 * @param {Discord.User} user - The user being faced against.
+	 */
+	checkUndefined(user) {
+		if (this.stat[this.channel.guild.id] === undefined) this.stat[this.channel.guild.id] = {};
+		if (this.stat[this.channel.guild.id][this.code] === undefined) this.stat[this.channel.guild.id][this.code] = {};
+		if (user && this.stat[this.channel.guild.id][this.code][user.id] === undefined) this.stat[this.channel.guild.id][this.code][user.id] = JSON.parse(JSON.stringify(this.defaultStat));
 	}
 
 }
@@ -52,17 +64,18 @@ class Duel extends Game {
 	/**
 	 * @param {Discord.Client} client - The client.
 	 * @param {Discord.TextChannel} channel - The channel where the game is created.
-	 * @param {{}} stat - The object containing game stats.
 	 * @param {String} title - The name of the game.
 	 * @param {String} code - The shorthand name of the game.
 	 * @param {String} prefix - The game title's prefix.
 	 * @param {Discord.User} challenger - The user initiating the duel.
 	 * @param {Discord.User} opponent - The user being faced against.
 	 * @param {Boolean} allowBotOpponent - Whether or not a user can challenge the bot.
+	 * @param {} defaultStat - The default value for stats.
+	 * @param {{}} stat - The object containing game stats.
 	 */
-	constructor(client, channel, stat, title, code, prefix, challenger, opponent, allowBotOpponent = false) {
+	constructor(client, channel, title, code, prefix, challenger, opponent, allowBotOpponent, defaultStat, stat) {
 		if (new.target === Duel) throw new TypeError("Cannot create instance of an abstract duel.");
-		super(client, channel, stat, title, code, prefix);
+		super(client, channel, title, code, prefix, defaultStat, stat);
 		this.challenger = challenger;
 		this.opponent = opponent;
 		this.allowBotOpponent = allowBotOpponent;
@@ -159,21 +172,15 @@ class Duel extends Game {
 
 	/**
 	 * Checks for undefined stats and creates data if necessary.
-	 * @param {{}} stat - The object containing game stats.
-	 * @param {Discord.Guild} guild - The guild in which the game is being played.
-	 * @param {String} code - The shorthand name of the game.
-	 * @param {Discord.User} user1
-	 * @param {Discord.User} user2
-	 * @param {} defaultData - The data to create for undefined stats.
 	 */
-	static checkUndefined(stat, guild, code, user1, user2, defaultData) {
-		if (stat[guild.id] === undefined) stat[guild.id] = {};
-		if (stat[guild.id][code] === undefined) stat[guild.id][code] = {};
-		if (user1 !== undefined) if (stat[guild.id][code][user1.id] === undefined) stat[guild.id][code][user1.id] = JSON.parse(JSON.stringify(defaultData));
-		if (user2 !== undefined) if (stat[guild.id][code][user2.id] === undefined) stat[guild.id][code][user2.id] = JSON.parse(JSON.stringify(defaultData));
-		if (user1 !== undefined && user2 !== undefined) {
-			if (stat[guild.id][code][user1.id][user2.id] === undefined) stat[guild.id][code][user1.id][user2.id] = JSON.parse(JSON.stringify(defaultData));
-			if (stat[guild.id][code][user2.id][user1.id] === undefined) stat[guild.id][code][user2.id][user1.id] = JSON.parse(JSON.stringify(defaultData));
+	checkUndefined() {
+		if (this.stat[this.channel.guild.id] === undefined) this.stat[this.channel.guild.id] = {};
+		if (this.stat[this.channel.guild.id][this.code] === undefined) this.stat[this.channel.guild.id][this.code] = {};
+		if (this.challenger !== undefined) if (this.stat[this.channel.guild.id][this.code][this.challenger.id] === undefined) this.stat[this.channel.guild.id][this.code][this.challenger.id] = JSON.parse(JSON.stringify(this.defaultStat));
+		if (this.opponent !== undefined) if (this.stat[this.channel.guild.id][this.code][this.opponent.id] === undefined) this.stat[this.channel.guild.id][this.code][this.opponent.id] = JSON.parse(JSON.stringify(this.defaultStat));
+		if (this.challenger !== undefined && this.opponent !== undefined) {
+			if (this.stat[this.channel.guild.id][this.code][this.challenger.id][this.opponent.id] === undefined) this.stat[this.channel.guild.id][this.code][this.challenger.id][this.opponent.id] = JSON.parse(JSON.stringify(this.defaultStat));
+			if (this.stat[this.channel.guild.id][this.code][this.opponent.id][this.challenger.id] === undefined) this.stat[this.channel.guild.id][this.code][this.opponent.id][this.challenger.id] = JSON.parse(JSON.stringify(this.defaultStat));
 		}
 	}
 
@@ -187,17 +194,18 @@ class Group extends Game {
 	/**
 	 * @param {Discord.Client} client - The client.
 	 * @param {Discord.TextChannel} channel - The channel where the game is created.
-	 * @param {{}} stat - The object containing game stats.
 	 * @param {String} title - The name of the game.
 	 * @param {String} code - The shorthand name of the game.
 	 * @param {String} prefix - The game title's prefix.
 	 * @param {Discord.User} host - The user hosting the game.
 	 * @param {Number} maxPlayers - The maximum number of users who can play the game.
 	 * @param {Boolean} allowBotOpponent - Whether or not a user can challenge the bot.
+	 * @param {} defaultStat - The default value for stats.
+	 * @param {{}} stat - The object containing game stats.
 	 */
-	constructor(client, channel, stat, title, code, prefix, host, maxPlayers, allowBotOpponent = false) {
+	constructor(client, channel, title, code, prefix, host, maxPlayers, allowBotOpponent, defaultStat, stat) {
 		if (new.target === Group) throw new TypeError("Cannot create instance of an abstract group game.");
-		super(client, channel, stat, title, code, prefix);
+		super(client, channel, title, code, prefix, stat);
 		this.host = host;
 		this.maxPlayers = maxPlayers;
 		this.players = [ host ];
@@ -285,26 +293,6 @@ class Group extends Game {
 		return str;
 	}
 
-	/**
-	 * Checks for undefined stats and creates data if necessary.
-	 * @param {{}} stat - The object containing game stats.
-	 * @param {Discord.Guild} guild - The guild in which the game is being played.
-	 * @param {String} code - The shorthand name of the game.
-	 * @param {Discord.User} user1
-	 * @param {Discord.User} user2
-	 * @param {} defaultData - The data to create for undefined stats.
-	 */
-	static checkUndefined(stat, guild, code, user1, user2, defaultData) {
-		if (stat[guild.id] === undefined) stat[guild.id] = {};
-		if (stat[guild.id][code] === undefined) stat[guild.id][code] = {};
-		if (user1 !== undefined) if (stat[guild.id][code][user1.id] === undefined) stat[guild.id][code][user1.id] = JSON.parse(JSON.stringify(defaultData));
-		if (user2 !== undefined) if (stat[guild.id][code][user2.id] === undefined) stat[guild.id][code][user2.id] = JSON.parse(JSON.stringify(defaultData));
-		if (user1 !== undefined && user2 !== undefined) {
-			if (stat[guild.id][code][user1.id][user2.id] === undefined) stat[guild.id][code][user1.id][user2.id] = JSON.parse(JSON.stringify(defaultData));
-			if (stat[guild.id][code][user2.id][user1.id] === undefined) stat[guild.id][code][user2.id][user1.id] = JSON.parse(JSON.stringify(defaultData));
-		}
-	}
-
 }
 
 /**
@@ -312,8 +300,9 @@ class Group extends Game {
  */
 class RockPaperScissors extends Duel {
 
-	constructor(client, channel, stat, challenger, opponent) {
-		super(client, channel, stat, "Rock Paper Scissors", "rps", ":rock: :page_facing_up: :scissors:", challenger, opponent, true);
+	constructor(client, channel, challenger, opponent, stat) {
+		super(client, channel, "Rock Paper Scissors", "rps", ":rock: :page_facing_up: :scissors:", challenger, opponent, true,
+		{ win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } }, stat);
 	}
 
 	/**
@@ -454,15 +443,6 @@ class RockPaperScissors extends Duel {
 				});	
 			});
 		}
-	}
-
-	/**
-	 * Checks for undefined stats and creates data if necessary.
-	 */
-	checkUndefined() {
-		Duel.checkUndefined(this.stat, this.channel.guild, this.code, this.challenger, this.opponent,
-			{ win: { rock: 0, paper: 0, scissors: 0 }, draw: { rock: 0, paper: 0, scissors: 0 }, loss: { rock: 0, paper: 0, scissors: 0 } }
-		);
 	}
 
 	/**
@@ -706,8 +686,9 @@ class RockPaperScissors extends Duel {
  */
 class TicTacToe extends Duel {
 
-	constructor(client, channel, stat, challenger, opponent) {
-		super(client, channel, stat, "Tic-Tac-Toe", "ttt", ":x: :o: :x:", challenger, opponent);
+	constructor(client, channel, challenger, opponent, stat) {
+		super(client, channel, "Tic-Tac-Toe", "ttt", ":x: :o: :x:", challenger, opponent, false,
+		{ win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } }, stat);
 
 		let players = [ this.challenger, this.opponent ];
 		this.xPlayer = players.splice(Math.round(Math.random()), 1)[0];
@@ -798,15 +779,6 @@ class TicTacToe extends Duel {
 				}
 			}
 		});
-	}
-
-	/**
-	 * Checks for undefined stats and creates data if necessary.
-	 */
-	checkUndefined() {
-		Duel.checkUndefined(this.stat, this.channel.guild, this.code, this.challenger, this.opponent,
-			{ win: { x: 0, o: 0 }, draw: { x: 0, o: 0 }, loss: { x: 0, o: 0 } }
-		);
 	}
 
 	/**
@@ -981,8 +953,9 @@ class TicTacToe extends Duel {
  */
 class ConnectFour extends Duel {
 	
-	constructor(client, channel, stat, challenger, opponent) {
-		super(client, channel, stat, "Connect Four", "c4", ":red_circle: :yellow_circle: :red_circle:", challenger, opponent);
+	constructor(client, channel, challenger, opponent, stat) {
+		super(client, channel, "Connect Four", "c4", ":red_circle: :yellow_circle: :red_circle:", challenger, opponent, false,
+		{ win: { red: 0, yellow: 0 }, draw: { red: 0, yellow: 0 }, loss: { red: 0, yellow: 0 } }, stat);
 
 		let players = [ this.challenger, this.opponent ];
 		this.redPlayer = players.splice(Math.round(Math.random()), 1)[0];
@@ -1096,15 +1069,6 @@ class ConnectFour extends Duel {
 
 	isPlayerTurn(reaction, user) {
 		return ((user.id === this.redPlayer.id && this.turn === 1) || (user.id === this.yellowPlayer.id && this.turn === 2)) && ConnectFour.emojiToIndex(reaction.emoji) !== -1;
-	}
-
-	/**
-	 * Checks for undefined stats and creates data if necessary.
-	 */
-	checkUndefined() {
-		Duel.checkUndefined(this.stat, this.channel.guild, this.code, this.challenger, this.opponent,
-			{ win: { red: 0, yellow: 0 }, draw: { red: 0, yellow: 0 }, loss: { red: 0, yellow: 0 } }
-		);
 	}
 
 	/**
