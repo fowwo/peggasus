@@ -47,6 +47,22 @@ class Tool {
 		if (this.user && this.stat[this.channel.guild.id][this.code][this.user.id] === undefined) this.stat[this.channel.guild.id][this.code][this.user.id] = JSON.parse(JSON.stringify(this.defaultStat));
 	}
 
+	/**
+	 * Checks for undefined stats of a second user and creates data if necessary.
+	 * Used when a tool is used on another user.
+	 * @param {Discord.User} user - The user in which the tool is being used on.
+	 */
+	checkUndefinedSecondUser(user) {
+		if (this.stat[this.channel.guild.id] === undefined) this.stat[this.channel.guild.id] = {};
+		if (this.stat[this.channel.guild.id][this.code] === undefined) this.stat[this.channel.guild.id][this.code] = {};
+		if (this.user && this.stat[this.channel.guild.id][this.code][this.user.id] === undefined) this.stat[this.channel.guild.id][this.code][this.user.id] = JSON.parse(JSON.stringify(this.defaultStat));
+		if (user && this.stat[this.channel.guild.id][this.code][user.id] === undefined) this.stat[this.channel.guild.id][this.code][user.id] = JSON.parse(JSON.stringify(this.defaultStat));
+		if (this.user && user) {
+			if (this.stat[this.channel.guild.id][this.code][this.user.id][user.id] === undefined) this.stat[this.channel.guild.id][this.code][this.user.id][user.id] = JSON.parse(JSON.stringify(this.defaultStat));
+			if (this.stat[this.channel.guild.id][this.code][user.id][this.user.id] === undefined) this.stat[this.channel.guild.id][this.code][user.id][this.user.id] = JSON.parse(JSON.stringify(this.defaultStat));
+		}
+	}
+
 }
 
 /**
@@ -117,7 +133,47 @@ class Flip extends Tool {
 
 }
 
+/**
+ * Give someone a hug.
+ */
+class Hug extends Tool {
+
+	/**
+	 * @param {Discord.Client} client - The client.
+	 * @param {Discord.TextChannel} channel - The channel where the tool is used.
+	 * @param {Discord.User} user - The user of the tool.
+	 * @param {Discord.User} huggedUser - The user being hugged.
+	 * @param {{}} stat - The object containing tool stats.
+	 */
+	constructor(client, channel, user, huggedUser, stat) {
+		super(client, channel, "Hug", "hug", ":heart_exclamation:", user, stat, { hugged: 0, huggedBy: 0 });
+		this.huggedUser = huggedUser;
+	}
+
+	/**
+	 * Uses the tool.
+	 */
+	use() {
+		if (this.huggedUser) {
+			this.channel.send(new Discord.MessageEmbed({ 
+				title: this.toString(),
+				description: `⊂(´･◡･⊂ )∘˚˳° ${this.user} hugged ${this.user == this.huggedUser ? "themself" : this.huggedUser}!`,
+				color: defaultColor
+			})).then((message) => {
+				this.checkUndefinedSecondUser(this.huggedUser);
+				this.stat[message.guild.id][this.code][this.user.id].hugged++;
+				this.stat[message.guild.id][this.code][this.user.id][this.huggedUser.id].hugged++;
+				this.stat[message.guild.id][this.code][this.huggedUser.id].huggedBy++;
+				this.stat[message.guild.id][this.code][this.huggedUser.id][this.user.id].huggedBy++;
+				this.endFunction();
+			});
+		}
+	}
+
+}
+
 module.exports = {
 	Roll: Roll,
-	Flip: Flip
+	Flip: Flip,
+	Hug: Hug
 }

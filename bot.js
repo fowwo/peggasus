@@ -36,6 +36,11 @@ client.on('message', (msg) => {
 				tool.onEnd(saveStats);
 				tool.use();
 				break;
+			case "hug":
+				tool = new Tool.Hug(client, msg.channel, msg.author, mentions[0], stat);
+				tool.onEnd(saveStats);
+				tool.use();
+				break;
 			case "rps":
 				game = new Game.RockPaperScissors(client, msg.channel, msg.author, mentions[0], stat);
 				if (args.length > 0) {
