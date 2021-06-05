@@ -1,6 +1,7 @@
 const fs = require("fs");
 const Discord = require("discord.js");
 const Game = require("./Game");
+const Tool = require("./Tool");
 const client = new Discord.Client();
 
 var config = {
