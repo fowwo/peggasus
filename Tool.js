@@ -50,6 +50,39 @@ class Tool {
 }
 
 /**
+ * Roll a die.
+ */
+class Roll extends Tool {
+
+	/**
+	 * @param {Discord.Client} client - The client.
+	 * @param {Discord.TextChannel} channel - The channel where the tool is used.
+	 * @param {Discord.User} user - The user of the tool.
+	 * @param {{}} stat - The object containing tool stats.
+	 */
+	constructor(client, channel, user, stat) {
+		super(client, channel, "Roll", "roll", ":game_die:", user, stat);
+	}
+
+	/**
+	 * Uses the tool.
+	 */
+	use() {
+		let value = Math.floor(Math.random() * 100) + 1;
+		this.channel.send(new Discord.MessageEmbed({ 
+			title: this.toString(),
+			description: `${this.user} rolled ${value}!`,
+			color: defaultColor
+		})).then((message) => {
+			this.checkUndefined();
+			this.stat[message.guild.id][this.code][this.user.id].uses++;
+			this.endFunction();
+		});
+	}
+
+}
+
+/**
  * Flip a coin.
  */
 class Flip extends Tool {
@@ -85,5 +118,6 @@ class Flip extends Tool {
 }
 
 module.exports = {
+	Roll: Roll,
 	Flip: Flip
 }

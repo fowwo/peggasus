@@ -26,6 +26,11 @@ client.on('message', (msg) => {
 			case "config":
 				configCommand(args);
 				break;
+			case "roll":
+				tool = new Tool.Roll(client, msg.channel, msg.author, stat);
+				tool.onEnd(saveStats);
+				tool.use();
+				break;
 			case "flip":
 				tool = new Tool.Flip(client, msg.channel, msg.author, stat);
 				tool.onEnd(saveStats);
