@@ -21,10 +21,15 @@ client.on('message', (msg) => {
 		let args = msg.content.split(" ");
 		let command = args.shift().substring(config.prefix.length);
 		let mentions = msg.mentions.users.array();
-		let game;
+		let game, tool;
 		switch (command.toLowerCase()) {
 			case "config":
 				configCommand(args);
+				break;
+			case "flip":
+				tool = new Tool.Flip(client, msg.channel, msg.author, stat);
+				tool.onEnd(saveStats);
+				tool.use();
 				break;
 			case "rps":
 				game = new Game.RockPaperScissors(client, msg.channel, msg.author, mentions[0], stat);

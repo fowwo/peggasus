@@ -48,3 +48,42 @@ class Tool {
 	}
 
 }
+
+/**
+ * Flip a coin.
+ */
+class Flip extends Tool {
+
+	/**
+	 * @param {Discord.Client} client - The client.
+	 * @param {Discord.TextChannel} channel - The channel where the tool is used.
+	 * @param {Discord.User} user - The user of the tool.
+	 * @param {{}} stat - The object containing tool stats.
+	 */
+	constructor(client, channel, user, stat) {
+		super(client, channel, "Flip", "flip", ":coin:", user, stat, { heads: 0, tails: 0 });
+	}
+
+	/**
+	 * Uses the tool.
+	 */
+	use() {
+		let value = Math.random();
+		let coin = Math.round(value) ? "heads" : "tails";
+		this.channel.send(new Discord.MessageEmbed({ 
+			title: this.toString(),
+			description: `${this.user} flipped ${coin}!`,
+			color: defaultColor,
+			footer: { text: `${value}` }
+		})).then((message) => {
+			this.checkUndefined();
+			this.stat[message.guild.id][this.code][this.user.id][coin]++;
+			this.endFunction();
+		});
+	}
+
+}
+
+module.exports = {
+	Flip: Flip
+}
