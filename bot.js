@@ -17,6 +17,7 @@ client.login(token);
 client.on('ready', () => console.log(`Logged in as ${client.user.tag}!`));
 
 client.on('message', (msg) => {
+	if (msg.channel instanceof Discord.DMChannel) return;
 	if (msg.content.startsWith(config.prefix)) {
 		let args = msg.content.split(" ");
 		let command = args.shift().substring(config.prefix.length);
